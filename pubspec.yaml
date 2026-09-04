@@ -1,0 +1,11 @@
+name: auto_skola_365_workspace
+publish_to: none
+
+environment:
+  sdk: ^3.9.2
+
+workspace:
+  - apps/admin_app
+
+dev_dependencies:
+  melos: ^6.3.3
