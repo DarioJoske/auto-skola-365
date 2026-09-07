@@ -113,10 +113,15 @@ class _InstructorsViewState extends State<InstructorsView> {
   Widget build(BuildContext context) {
     return BlocListener<InstructorsCubit, InstructorsState>(
       listenWhen: (previous, current) =>
-          previous.errorStatusCode != current.errorStatusCode &&
-          current.errorStatusCode == 401,
+          previous.errorEventId != current.errorEventId &&
+          current.errorMessage != null,
       listener: (context, state) {
-        context.read<AuthCubit>().logout();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+        if (state.errorStatusCode == 401) {
+          context.read<AuthCubit>().logout();
+        }
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -375,6 +380,7 @@ class _InstructorDialogState extends State<_InstructorDialog> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _licenseController = TextEditingController();
 
@@ -426,6 +432,7 @@ class _InstructorDialogState extends State<_InstructorDialog> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     _phoneController.dispose();
     _licenseController.dispose();
     super.dispose();
@@ -447,6 +454,7 @@ class _InstructorDialogState extends State<_InstructorDialog> {
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
       email: _emailController.text.trim(),
+      password: _emptyToNull(_passwordController.text),
       phone: _emptyToNull(_phoneController.text),
       licenseNumber: _emptyToNull(_licenseController.text),
       active: _active,
@@ -520,6 +528,20 @@ class _InstructorDialogState extends State<_InstructorDialog> {
                       keyboardType: TextInputType.emailAddress,
                       enabled: !_isEditing,
                       validator: _required,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: _isEditing
+                            ? 'Nova lozinka'
+                            : 'Privremena lozinka',
+                        helperText: _isEditing
+                            ? 'Ostavi prazno ako ne mijenjas lozinku.'
+                            : 'Instruktor koristi ovu lozinku za prvu prijavu.',
+                      ),
+                      obscureText: true,
+                      validator: _passwordValidator,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
@@ -643,6 +665,17 @@ class _InstructorDialogState extends State<_InstructorDialog> {
   String? _required(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Obavezno polje.';
+    }
+    return null;
+  }
+
+  String? _passwordValidator(String? value) {
+    final password = value?.trim() ?? '';
+    if (!_isEditing && password.isEmpty) {
+      return 'Unesi privremenu lozinku.';
+    }
+    if (password.isNotEmpty && password.length < 8) {
+      return 'Lozinka mora imati najmanje 8 znakova.';
     }
     return null;
   }

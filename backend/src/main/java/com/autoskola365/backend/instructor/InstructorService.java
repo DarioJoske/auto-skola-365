@@ -1,8 +1,11 @@
 package com.autoskola365.backend.instructor;
 
+import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -86,18 +89,21 @@ public class InstructorService {
     @Transactional
     public InstructorResponse create(UUID schoolId, InstructorRequest request, AuthenticatedUser authenticatedUser) {
         requirePermission(schoolId, authenticatedUser);
+        validateRequiredPassword(request.password());
 
         School school = schoolRepository.findById(schoolId)
             .orElseThrow(() -> new IllegalArgumentException("School does not exist."));
+        String passwordHash = passwordEncoder.encode(request.password());
         UserAccount user = userAccountRepository.findByEmailIgnoreCase(request.email())
             .orElseGet(() -> userAccountRepository.save(new UserAccount(
                 request.email(),
-                passwordEncoder.encode(UUID.randomUUID().toString()),
+                passwordHash,
                 request.firstName(),
                 request.lastName(),
                 request.phone()
             )));
         user.updateProfile(request.firstName(), request.lastName(), request.phone());
+        user.changePasswordHash(passwordHash);
 
         Role instructorRole = roleRepository.findByKey(INSTRUCTOR_ROLE)
             .orElseThrow(() -> new IllegalStateException("Missing instructor role seed."));
@@ -134,9 +140,32 @@ public class InstructorService {
             request.lastName(),
             request.phone()
         );
+        if (hasPassword(request.password())) {
+            validatePasswordLength(request.password());
+            instructor.getSchoolMembership()
+                .getUser()
+                .changePasswordHash(passwordEncoder.encode(request.password()));
+        }
         applyInstructorDetails(instructor, request);
 
         return toResponse(instructor);
+    }
+
+    private void validateRequiredPassword(String password) {
+        if (!hasPassword(password)) {
+            throw new IllegalArgumentException("Instructor password is required.");
+        }
+        validatePasswordLength(password);
+    }
+
+    private void validatePasswordLength(String password) {
+        if (password.length() < 8) {
+            throw new IllegalArgumentException("Instructor password must be at least 8 characters.");
+        }
+    }
+
+    private boolean hasPassword(String password) {
+        return password != null && !password.isBlank();
     }
 
     private void applyInstructorDetails(InstructorProfile instructor, InstructorRequest request) {
@@ -169,20 +198,24 @@ public class InstructorService {
             return List.of();
         }
 
-        return rules.stream()
-            .map(rule -> {
-                if (!rule.startTime().isBefore(rule.endTime())) {
-                    throw new IllegalArgumentException("Availability start time must be before end time.");
-                }
+        Map<AvailabilityRuleKey, InstructorAvailabilityRule> uniqueRules = new LinkedHashMap<>();
+        for (InstructorRequest.AvailabilityRuleRequest rule : rules) {
+            if (!rule.startTime().isBefore(rule.endTime())) {
+                throw new IllegalArgumentException("Availability start time must be before end time.");
+            }
 
-                return new InstructorAvailabilityRule(
+            uniqueRules.putIfAbsent(
+                new AvailabilityRuleKey(rule.dayOfWeek(), rule.startTime(), rule.endTime()),
+                new InstructorAvailabilityRule(
                     instructor,
                     rule.dayOfWeek(),
                     rule.startTime(),
                     rule.endTime()
-                );
-            })
-            .toList();
+                )
+            );
+        }
+
+        return List.copyOf(uniqueRules.values());
     }
 
     private void requirePermission(UUID schoolId, AuthenticatedUser authenticatedUser) {
@@ -200,7 +233,7 @@ public class InstructorService {
             .map(DrivingCategory::getCode)
             .sorted(Comparator.naturalOrder())
             .toList();
-        List<InstructorResponse.AvailabilityRuleResponse> availabilityRules = instructor.getAvailabilityRules()
+        List<InstructorResponse.AvailabilityRuleResponse> availabilityRules = distinctAvailabilityRules(instructor.getAvailabilityRules())
             .stream()
             .sorted(Comparator
                 .comparingInt(InstructorAvailabilityRule::getDayOfWeek)
@@ -227,5 +260,20 @@ public class InstructorService {
             categoryCodes,
             availabilityRules
         );
+    }
+
+    private List<InstructorAvailabilityRule> distinctAvailabilityRules(List<InstructorAvailabilityRule> rules) {
+        Map<AvailabilityRuleKey, InstructorAvailabilityRule> uniqueRules = new LinkedHashMap<>();
+        for (InstructorAvailabilityRule rule : rules) {
+            uniqueRules.putIfAbsent(
+                new AvailabilityRuleKey(rule.getDayOfWeek(), rule.getStartTime(), rule.getEndTime()),
+                rule
+            );
+        }
+
+        return List.copyOf(uniqueRules.values());
+    }
+
+    private record AvailabilityRuleKey(int dayOfWeek, LocalTime startTime, LocalTime endTime) {
     }
 }

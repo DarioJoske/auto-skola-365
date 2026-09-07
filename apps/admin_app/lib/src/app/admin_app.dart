@@ -22,6 +22,11 @@ class _AdminAppState extends State<AdminApp> {
     listInstructors: getIt(),
     createInstructor: getIt(),
     updateInstructor: getIt(),
+    listLessons: getIt(),
+    createLesson: getIt(),
+    updateLesson: getIt(),
+    confirmLesson: getIt(),
+    cancelLesson: getIt(),
   );
 
   @override

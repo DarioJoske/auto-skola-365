@@ -1,6 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/api/failure.dart';
 import '../../../../core/api/result_extensions.dart';
+import '../../../instructors/domain/entities/instructor_filters.dart';
+import '../../../instructors/domain/usecases/list_instructors.dart';
 import '../../domain/entities/candidate_filters.dart';
 import '../../domain/entities/create_candidate.dart';
 import '../../domain/entities/update_candidate.dart';
@@ -12,11 +15,13 @@ import 'candidates_state.dart';
 class CandidatesCubit extends Cubit<CandidatesState> {
   CandidatesCubit({
     required ListCandidates listCandidates,
+    required ListInstructors listInstructors,
     required CreateCandidateUseCase createCandidate,
     required UpdateCandidateUseCase updateCandidate,
     required String schoolId,
     required String accessToken,
   }) : _listCandidates = listCandidates,
+       _listInstructors = listInstructors,
        _createCandidate = createCandidate,
        _updateCandidate = updateCandidate,
        _schoolId = schoolId,
@@ -24,34 +29,66 @@ class CandidatesCubit extends Cubit<CandidatesState> {
        super(const CandidatesState.initial());
 
   final ListCandidates _listCandidates;
+  final ListInstructors _listInstructors;
   final CreateCandidateUseCase _createCandidate;
   final UpdateCandidateUseCase _updateCandidate;
   final String _schoolId;
   final String _accessToken;
 
   Future<void> load() async {
-    emit(state.copyWith(status: CandidatesStatus.loading));
+    emit(
+      state.copyWith(
+        status: CandidatesStatus.loading,
+        errorMessage: null,
+        errorStatusCode: null,
+      ),
+    );
 
-    final result = await _listCandidates(
+    final candidatesResult = await _listCandidates(
       schoolId: _schoolId,
       accessToken: _accessToken,
       filters: state.filters,
     );
+    final instructorsResult = await _listInstructors(
+      schoolId: _schoolId,
+      accessToken: _accessToken,
+      filters: const InstructorFilters(active: true),
+    );
 
-    result.resolveWithFailure(
-      onFailure: (failure) => emit(
+    final failure =
+        candidatesResult.resolveWithFailure<Failure?>(
+          onFailure: (failure) => failure,
+          onSuccess: (_) => null,
+        ) ??
+        instructorsResult.resolveWithFailure<Failure?>(
+          onFailure: (failure) => failure,
+          onSuccess: (_) => null,
+        );
+
+    if (failure != null) {
+      emit(
         state.copyWith(
           status: CandidatesStatus.failure,
           errorMessage: failure.message,
           errorStatusCode: failure.statusCode,
+          errorEventId: state.errorEventId + 1,
         ),
-      ),
-      onSuccess: (candidates) => emit(
-        CandidatesState(
-          status: CandidatesStatus.loaded,
-          candidates: candidates,
-          filters: state.filters,
+      );
+      return;
+    }
+
+    emit(
+      CandidatesState(
+        status: CandidatesStatus.loaded,
+        candidates: candidatesResult.resolveWithFailure(
+          onFailure: (_) => const [],
+          onSuccess: (candidates) => candidates,
         ),
+        instructors: instructorsResult.resolveWithFailure(
+          onFailure: (_) => const [],
+          onSuccess: (instructors) => instructors,
+        ),
+        filters: state.filters,
       ),
     );
   }
@@ -67,7 +104,13 @@ class CandidatesCubit extends Cubit<CandidatesState> {
   }
 
   Future<bool> create(CreateCandidate candidate) async {
-    emit(state.copyWith(isSubmitting: true));
+    emit(
+      state.copyWith(
+        isSubmitting: true,
+        errorMessage: null,
+        errorStatusCode: null,
+      ),
+    );
 
     final result = await _createCandidate(
       schoolId: _schoolId,
@@ -82,6 +125,7 @@ class CandidatesCubit extends Cubit<CandidatesState> {
             isSubmitting: false,
             errorMessage: failure.message,
             errorStatusCode: failure.statusCode,
+            errorEventId: state.errorEventId + 1,
           ),
         );
         return false;
@@ -94,7 +138,13 @@ class CandidatesCubit extends Cubit<CandidatesState> {
   }
 
   Future<bool> update(String candidateId, UpdateCandidate candidate) async {
-    emit(state.copyWith(isSubmitting: true));
+    emit(
+      state.copyWith(
+        isSubmitting: true,
+        errorMessage: null,
+        errorStatusCode: null,
+      ),
+    );
 
     final result = await _updateCandidate(
       schoolId: _schoolId,
@@ -110,6 +160,7 @@ class CandidatesCubit extends Cubit<CandidatesState> {
             isSubmitting: false,
             errorMessage: failure.message,
             errorStatusCode: failure.statusCode,
+            errorEventId: state.errorEventId + 1,
           ),
         );
         return false;

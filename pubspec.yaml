@@ -6,6 +6,7 @@ environment:
 
 workspace:
   - apps/admin_app
+  - apps/instructor_app
 
 dev_dependencies:
   melos: ^6.3.3

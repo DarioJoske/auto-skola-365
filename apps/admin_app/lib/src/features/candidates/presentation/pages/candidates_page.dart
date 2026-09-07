@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../instructors/domain/entities/instructor.dart';
+import '../../../instructors/domain/usecases/list_instructors.dart';
 import '../../domain/entities/candidate.dart';
 import '../../domain/entities/candidate_filters.dart';
 import '../../domain/entities/create_candidate.dart';
@@ -26,9 +28,15 @@ const _candidateStatuses = [
 ];
 
 const _categoryCodes = ['A', 'B', 'C', 'D', 'CE'];
+const _withoutInstructorFilterValue = '__without_instructor__';
+
+String _editableCandidateStatus(String status) {
+  return _candidateStatuses.contains(status) ? status : 'ENROLLED';
+}
 
 String _statusLabel(String status) {
   return switch (status) {
+    'ACTIVE' => 'Aktivan',
     'LEAD' => 'Lead',
     'ENROLLED' => 'Upisan',
     'IN_THEORY' => 'Na teoriji',
@@ -46,12 +54,14 @@ String _statusLabel(String status) {
 class CandidatesPage extends StatelessWidget {
   const CandidatesPage({
     required this.listCandidates,
+    required this.listInstructors,
     required this.createCandidate,
     required this.updateCandidate,
     super.key,
   });
 
   final ListCandidates listCandidates;
+  final ListInstructors listInstructors;
   final CreateCandidateUseCase createCandidate;
   final UpdateCandidateUseCase updateCandidate;
 
@@ -63,6 +73,7 @@ class CandidatesPage extends StatelessWidget {
     return BlocProvider(
       create: (_) => CandidatesCubit(
         listCandidates: listCandidates,
+        listInstructors: listInstructors,
         createCandidate: createCandidate,
         updateCandidate: updateCandidate,
         schoolId: membership.schoolId,
@@ -84,6 +95,7 @@ class _CandidatesViewState extends State<CandidatesView> {
   final _searchController = TextEditingController();
   String? _status;
   String? _categoryCode;
+  String? _assignedInstructorId;
 
   @override
   void dispose() {
@@ -128,6 +140,12 @@ class _CandidatesViewState extends State<CandidatesView> {
         query: _emptyToNull(_searchController.text),
         status: _status,
         categoryCode: _categoryCode,
+        assignedInstructorId:
+            _assignedInstructorId == _withoutInstructorFilterValue
+            ? null
+            : _assignedInstructorId,
+        withoutInstructor:
+            _assignedInstructorId == _withoutInstructorFilterValue,
       ),
     );
   }
@@ -137,6 +155,7 @@ class _CandidatesViewState extends State<CandidatesView> {
     setState(() {
       _status = null;
       _categoryCode = null;
+      _assignedInstructorId = null;
     });
     await context.read<CandidatesCubit>().clearFilters();
   }
@@ -150,10 +169,15 @@ class _CandidatesViewState extends State<CandidatesView> {
   Widget build(BuildContext context) {
     return BlocListener<CandidatesCubit, CandidatesState>(
       listenWhen: (previous, current) =>
-          previous.errorStatusCode != current.errorStatusCode &&
-          current.errorStatusCode == 401,
+          previous.errorEventId != current.errorEventId &&
+          current.errorMessage != null,
       listener: (context, state) {
-        context.read<AuthCubit>().logout();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+        if (state.errorStatusCode == 401) {
+          context.read<AuthCubit>().logout();
+        }
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -180,8 +204,12 @@ class _CandidatesViewState extends State<CandidatesView> {
             searchController: _searchController,
             status: _status,
             categoryCode: _categoryCode,
+            assignedInstructorId: _assignedInstructorId,
+            instructors: context.watch<CandidatesCubit>().state.instructors,
             onStatusChanged: (value) => setState(() => _status = value),
             onCategoryChanged: (value) => setState(() => _categoryCode = value),
+            onInstructorChanged: (value) =>
+                setState(() => _assignedInstructorId = value),
             onApply: () => _applyFilters(context),
             onClear: () => _clearFilters(context),
           ),
@@ -255,8 +283,11 @@ class _CandidateFiltersBar extends StatelessWidget {
     required this.searchController,
     required this.status,
     required this.categoryCode,
+    required this.assignedInstructorId,
+    required this.instructors,
     required this.onStatusChanged,
     required this.onCategoryChanged,
+    required this.onInstructorChanged,
     required this.onApply,
     required this.onClear,
   });
@@ -264,8 +295,11 @@ class _CandidateFiltersBar extends StatelessWidget {
   final TextEditingController searchController;
   final String? status;
   final String? categoryCode;
+  final String? assignedInstructorId;
+  final List<Instructor> instructors;
   final ValueChanged<String?> onStatusChanged;
   final ValueChanged<String?> onCategoryChanged;
+  final ValueChanged<String?> onInstructorChanged;
   final VoidCallback onApply;
   final VoidCallback onClear;
 
@@ -318,6 +352,30 @@ class _CandidateFiltersBar extends StatelessWidget {
             onChanged: onCategoryChanged,
           ),
         ),
+        SizedBox(
+          width: 240,
+          child: DropdownButtonFormField<String>(
+            initialValue: _safeInstructorFilterValue(),
+            decoration: const InputDecoration(labelText: 'Instruktor'),
+            items: [
+              const DropdownMenuItem(
+                value: null,
+                child: Text('Svi instruktori'),
+              ),
+              const DropdownMenuItem(
+                value: _withoutInstructorFilterValue,
+                child: Text('Bez instruktora'),
+              ),
+              ...instructors.map(
+                (instructor) => DropdownMenuItem(
+                  value: instructor.id,
+                  child: Text(instructor.fullName),
+                ),
+              ),
+            ],
+            onChanged: onInstructorChanged,
+          ),
+        ),
         FilledButton.icon(
           onPressed: onApply,
           icon: const Icon(Icons.filter_alt),
@@ -330,6 +388,19 @@ class _CandidateFiltersBar extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String? _safeInstructorFilterValue() {
+    final instructorId = assignedInstructorId;
+    if (instructorId == null) {
+      return null;
+    }
+    if (instructorId == _withoutInstructorFilterValue) {
+      return instructorId;
+    }
+    return instructors.any((instructor) => instructor.id == instructorId)
+        ? instructorId
+        : null;
   }
 }
 
@@ -369,6 +440,8 @@ class _CandidateRow extends StatelessWidget {
                       candidate.email,
                       candidate.phone,
                       'Kategorija ${candidate.categoryCode}',
+                      if (candidate.assignedInstructorName != null)
+                        'Instruktor ${candidate.assignedInstructorName}',
                     ].whereType<String>().join(' · '),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -412,6 +485,7 @@ class _CandidateDialogState extends State<_CandidateDialog> {
 
   String _categoryCode = 'B';
   String _status = 'LEAD';
+  String? _assignedInstructorId;
 
   bool get _isEditing => widget.candidate != null;
 
@@ -431,7 +505,8 @@ class _CandidateDialogState extends State<_CandidateDialog> {
     _oibController.text = candidate.oib ?? '';
     _notesController.text = candidate.notes ?? '';
     _categoryCode = candidate.categoryCode;
-    _status = candidate.status;
+    _status = _editableCandidateStatus(candidate.status);
+    _assignedInstructorId = candidate.assignedInstructorId;
   }
 
   @override
@@ -462,6 +537,7 @@ class _CandidateDialogState extends State<_CandidateDialog> {
               oib: _emptyToNull(_oibController.text),
               status: _status,
               categoryCode: _categoryCode,
+              assignedInstructorId: _assignedInstructorId,
               notes: _emptyToNull(_notesController.text),
             ),
           )
@@ -475,6 +551,7 @@ class _CandidateDialogState extends State<_CandidateDialog> {
               oib: _emptyToNull(_oibController.text),
               status: _status,
               categoryCode: _categoryCode,
+              assignedInstructorId: _assignedInstructorId,
               notes: _emptyToNull(_notesController.text),
             ),
           );
@@ -487,6 +564,17 @@ class _CandidateDialogState extends State<_CandidateDialog> {
   String? _emptyToNull(String value) {
     final trimmed = value.trim();
     return trimmed.isEmpty ? null : trimmed;
+  }
+
+  String? _safeInstructorValue(List<Instructor> instructors) {
+    final assignedInstructorId = _assignedInstructorId;
+    if (assignedInstructorId == null) {
+      return null;
+    }
+    final exists = instructors.any(
+      (instructor) => instructor.id == assignedInstructorId,
+    );
+    return exists ? assignedInstructorId : null;
   }
 
   @override
@@ -581,6 +669,30 @@ class _CandidateDialogState extends State<_CandidateDialog> {
                             _categoryCode = value;
                           });
                         }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: _safeInstructorValue(state.instructors),
+                      decoration: const InputDecoration(
+                        labelText: 'Dodijeljeni instruktor',
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Bez instruktora'),
+                        ),
+                        ...state.instructors.map(
+                          (instructor) => DropdownMenuItem(
+                            value: instructor.id,
+                            child: Text(instructor.fullName),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _assignedInstructorId = value;
+                        });
                       },
                     ),
                     const SizedBox(height: 12),

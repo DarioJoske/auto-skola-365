@@ -6,6 +6,7 @@ class SaveInstructorModel {
     required this.firstName,
     required this.lastName,
     required this.email,
+    required this.password,
     required this.phone,
     required this.licenseNumber,
     required this.active,
@@ -18,6 +19,7 @@ class SaveInstructorModel {
       firstName: instructor.firstName,
       lastName: instructor.lastName,
       email: instructor.email,
+      password: instructor.password,
       phone: instructor.phone,
       licenseNumber: instructor.licenseNumber,
       active: instructor.active,
@@ -29,6 +31,7 @@ class SaveInstructorModel {
   final String firstName;
   final String lastName;
   final String email;
+  final String? password;
   final String? phone;
   final String? licenseNumber;
   final bool active;
@@ -40,6 +43,7 @@ class SaveInstructorModel {
       'firstName': firstName,
       'lastName': lastName,
       'email': email,
+      if (password != null) 'password': password,
       'phone': phone,
       'licenseNumber': licenseNumber,
       'active': active,

@@ -9,6 +9,7 @@ class CreateCandidateModel {
     required this.oib,
     required this.status,
     required this.categoryCode,
+    required this.assignedInstructorId,
     required this.notes,
   });
 
@@ -21,6 +22,7 @@ class CreateCandidateModel {
       oib: candidate.oib,
       status: candidate.status,
       categoryCode: candidate.categoryCode,
+      assignedInstructorId: candidate.assignedInstructorId,
       notes: candidate.notes,
     );
   }
@@ -32,6 +34,7 @@ class CreateCandidateModel {
   final String? oib;
   final String status;
   final String categoryCode;
+  final String? assignedInstructorId;
   final String? notes;
 
   Map<String, dynamic> toJson() {
@@ -43,6 +46,7 @@ class CreateCandidateModel {
       'oib': oib,
       'status': status,
       'categoryCode': categoryCode,
+      'assignedInstructorId': assignedInstructorId,
       'notes': notes,
     };
   }

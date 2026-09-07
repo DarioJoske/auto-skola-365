@@ -3,6 +3,8 @@ package com.autoskola365.backend.candidate;
 import java.util.UUID;
 
 import com.autoskola365.backend.common.AuditableEntity;
+import com.autoskola365.backend.instructor.InstructorProfile;
+import com.autoskola365.backend.identity.UserAccount;
 import com.autoskola365.backend.school.School;
 import com.autoskola365.backend.training.DrivingCategory;
 
@@ -30,6 +32,14 @@ public class Candidate extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "driving_category_id")
     private DrivingCategory drivingCategory;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_instructor_profile_id")
+    private InstructorProfile assignedInstructor;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private UserAccount user;
 
     @Column(name = "first_name", nullable = false)
     private String firstName;
@@ -60,10 +70,29 @@ public class Candidate extends AuditableEntity {
         String phone,
         String oib,
         String status,
+        InstructorProfile assignedInstructor,
+        String notes
+    ) {
+        this(school, drivingCategory, firstName, lastName, email, phone, oib, status, assignedInstructor, null, notes);
+    }
+
+    public Candidate(
+        School school,
+        DrivingCategory drivingCategory,
+        String firstName,
+        String lastName,
+        String email,
+        String phone,
+        String oib,
+        String status,
+        InstructorProfile assignedInstructor,
+        UserAccount user,
         String notes
     ) {
         this.school = school;
         this.drivingCategory = drivingCategory;
+        this.assignedInstructor = assignedInstructor;
+        this.user = user;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
@@ -81,9 +110,11 @@ public class Candidate extends AuditableEntity {
         String phone,
         String oib,
         String status,
+        InstructorProfile assignedInstructor,
         String notes
     ) {
         this.drivingCategory = drivingCategory;
+        this.assignedInstructor = assignedInstructor;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
@@ -103,6 +134,14 @@ public class Candidate extends AuditableEntity {
 
     public DrivingCategory getDrivingCategory() {
         return drivingCategory;
+    }
+
+    public InstructorProfile getAssignedInstructor() {
+        return assignedInstructor;
+    }
+
+    public UserAccount getUser() {
+        return user;
     }
 
     public String getFirstName() {

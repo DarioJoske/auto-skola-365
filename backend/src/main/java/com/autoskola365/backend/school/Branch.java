@@ -47,6 +47,10 @@ public class Branch extends AuditableEntity {
         return id;
     }
 
+    public School getSchool() {
+        return school;
+    }
+
     public String getName() {
         return name;
     }

@@ -13,6 +13,8 @@ public record CandidateResponse(
     String status,
     String categoryCode,
     String categoryName,
+    UUID assignedInstructorId,
+    String assignedInstructorName,
     String notes
 ) {
 }
