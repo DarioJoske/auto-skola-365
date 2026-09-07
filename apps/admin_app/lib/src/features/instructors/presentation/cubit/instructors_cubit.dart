@@ -29,7 +29,13 @@ class InstructorsCubit extends Cubit<InstructorsState> {
   final String _accessToken;
 
   Future<void> load() async {
-    emit(state.copyWith(status: InstructorsStatus.loading));
+    emit(
+      state.copyWith(
+        status: InstructorsStatus.loading,
+        errorMessage: null,
+        errorStatusCode: null,
+      ),
+    );
 
     final result = await _listInstructors(
       schoolId: _schoolId,
@@ -43,6 +49,7 @@ class InstructorsCubit extends Cubit<InstructorsState> {
           status: InstructorsStatus.failure,
           errorMessage: failure.message,
           errorStatusCode: failure.statusCode,
+          errorEventId: state.errorEventId + 1,
         ),
       ),
       onSuccess: (instructors) => emit(
@@ -66,7 +73,13 @@ class InstructorsCubit extends Cubit<InstructorsState> {
   }
 
   Future<bool> create(SaveInstructor instructor) async {
-    emit(state.copyWith(isSubmitting: true));
+    emit(
+      state.copyWith(
+        isSubmitting: true,
+        errorMessage: null,
+        errorStatusCode: null,
+      ),
+    );
 
     final result = await _createInstructor(
       schoolId: _schoolId,
@@ -81,6 +94,7 @@ class InstructorsCubit extends Cubit<InstructorsState> {
             isSubmitting: false,
             errorMessage: failure.message,
             errorStatusCode: failure.statusCode,
+            errorEventId: state.errorEventId + 1,
           ),
         );
         return false;
@@ -93,7 +107,13 @@ class InstructorsCubit extends Cubit<InstructorsState> {
   }
 
   Future<bool> update(String instructorId, SaveInstructor instructor) async {
-    emit(state.copyWith(isSubmitting: true));
+    emit(
+      state.copyWith(
+        isSubmitting: true,
+        errorMessage: null,
+        errorStatusCode: null,
+      ),
+    );
 
     final result = await _updateInstructor(
       schoolId: _schoolId,
@@ -109,6 +129,7 @@ class InstructorsCubit extends Cubit<InstructorsState> {
             isSubmitting: false,
             errorMessage: failure.message,
             errorStatusCode: failure.statusCode,
+            errorEventId: state.errorEventId + 1,
           ),
         );
         return false;

@@ -14,6 +14,12 @@ import '../../features/instructors/domain/usecases/create_instructor.dart';
 import '../../features/instructors/domain/usecases/list_instructors.dart';
 import '../../features/instructors/domain/usecases/update_instructor.dart';
 import '../../features/instructors/presentation/pages/instructors_page.dart';
+import '../../features/lessons/domain/usecases/cancel_lesson.dart';
+import '../../features/lessons/domain/usecases/confirm_lesson.dart';
+import '../../features/lessons/domain/usecases/create_lesson.dart';
+import '../../features/lessons/domain/usecases/list_lessons.dart';
+import '../../features/lessons/domain/usecases/update_lesson.dart';
+import '../../features/lessons/presentation/pages/lessons_page.dart';
 import 'go_router_refresh_stream.dart';
 
 GoRouter createAppRouter({
@@ -24,6 +30,11 @@ GoRouter createAppRouter({
   required ListInstructors listInstructors,
   required CreateInstructorUseCase createInstructor,
   required UpdateInstructorUseCase updateInstructor,
+  required ListLessons listLessons,
+  required CreateLessonUseCase createLesson,
+  required UpdateLessonUseCase updateLesson,
+  required ConfirmLessonUseCase confirmLesson,
+  required CancelLessonUseCase cancelLesson,
 }) {
   return GoRouter(
     initialLocation: '/',
@@ -48,41 +59,73 @@ GoRouter createAppRouter({
       return null;
     },
     routes: [
-      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      GoRoute(
+        path: '/login',
+        pageBuilder: (context, state) =>
+            _noTransitionPage(state, const LoginPage()),
+      ),
       ShellRoute(
-        builder: (context, state, child) => AdminShellPage(child: child),
+        pageBuilder: (context, state, child) =>
+            _noTransitionPage(state, AdminShellPage(child: child)),
         routes: [
-          GoRoute(path: '/', builder: (context, state) => const OverviewPage()),
+          GoRoute(
+            path: '/',
+            pageBuilder: (context, state) =>
+                _noTransitionPage(state, const OverviewPage()),
+          ),
           GoRoute(
             path: '/candidates',
-            builder: (context, state) => CandidatesPage(
-              listCandidates: listCandidates,
-              createCandidate: createCandidate,
-              updateCandidate: updateCandidate,
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              CandidatesPage(
+                listCandidates: listCandidates,
+                listInstructors: listInstructors,
+                createCandidate: createCandidate,
+                updateCandidate: updateCandidate,
+              ),
             ),
           ),
           GoRoute(
             path: '/instructors',
-            builder: (context, state) => InstructorsPage(
-              listInstructors: listInstructors,
-              createInstructor: createInstructor,
-              updateInstructor: updateInstructor,
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              InstructorsPage(
+                listInstructors: listInstructors,
+                createInstructor: createInstructor,
+                updateInstructor: updateInstructor,
+              ),
             ),
           ),
           GoRoute(
             path: '/lessons',
-            builder: (context, state) =>
-                const _PlaceholderPage(title: 'Voznje'),
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              LessonsPage(
+                listLessons: listLessons,
+                createLesson: createLesson,
+                updateLesson: updateLesson,
+                confirmLesson: confirmLesson,
+                cancelLesson: cancelLesson,
+                listCandidates: listCandidates,
+                listInstructors: listInstructors,
+              ),
+            ),
           ),
           GoRoute(
             path: '/settings',
-            builder: (context, state) =>
-                const _PlaceholderPage(title: 'Postavke'),
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              const _PlaceholderPage(title: 'Postavke'),
+            ),
           ),
         ],
       ),
     ],
   );
+}
+
+Page<void> _noTransitionPage(GoRouterState state, Widget child) {
+  return NoTransitionPage(key: state.pageKey, child: child);
 }
 
 class _PlaceholderPage extends StatelessWidget {

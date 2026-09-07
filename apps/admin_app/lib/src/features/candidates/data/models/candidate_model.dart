@@ -12,6 +12,8 @@ class CandidateModel {
     required this.status,
     required this.categoryCode,
     required this.categoryName,
+    required this.assignedInstructorId,
+    required this.assignedInstructorName,
     required this.notes,
   });
 
@@ -27,6 +29,8 @@ class CandidateModel {
       status: json['status'] as String,
       categoryCode: json['categoryCode'] as String,
       categoryName: json['categoryName'] as String,
+      assignedInstructorId: json['assignedInstructorId'] as String?,
+      assignedInstructorName: json['assignedInstructorName'] as String?,
       notes: json['notes'] as String?,
     );
   }
@@ -41,6 +45,8 @@ class CandidateModel {
   final String status;
   final String categoryCode;
   final String categoryName;
+  final String? assignedInstructorId;
+  final String? assignedInstructorName;
   final String? notes;
 
   Candidate toEntity() {
@@ -55,6 +61,8 @@ class CandidateModel {
       status: status,
       categoryCode: categoryCode,
       categoryName: categoryName,
+      assignedInstructorId: assignedInstructorId,
+      assignedInstructorName: assignedInstructorName,
       notes: notes,
     );
   }

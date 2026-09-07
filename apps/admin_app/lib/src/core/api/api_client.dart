@@ -64,13 +64,41 @@ class ApiClient {
 
   ApiException _toApiException(DioException error) {
     final statusCode = error.response?.statusCode;
-    return ApiException(_messageForStatus(statusCode), statusCode: statusCode);
+    return ApiException(
+      _messageFromResponse(error.response?.data) ??
+          _messageForStatus(statusCode),
+      statusCode: statusCode,
+      code: _codeFromResponse(error.response?.data),
+    );
+  }
+
+  String? _messageFromResponse(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final message = data['message'];
+      if (message is String && message.trim().isNotEmpty) {
+        return message;
+      }
+    }
+
+    return null;
+  }
+
+  String? _codeFromResponse(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final code = data['code'];
+      if (code is String && code.trim().isNotEmpty) {
+        return code;
+      }
+    }
+
+    return null;
   }
 
   String _messageForStatus(int? statusCode) {
     return switch (statusCode) {
       401 => 'Sesija je istekla. Prijavi se ponovno.',
       403 => 'Nemas dozvolu za ovu akciju.',
+      409 => 'Termin se preklapa s postojecim terminom.',
       null => 'Nije moguce spojiti se na backend.',
       _ => 'API zahtjev nije uspio ($statusCode).',
     };

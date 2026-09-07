@@ -20,6 +20,14 @@ public interface InstructorRepository extends JpaRepository<InstructorProfile, U
     })
     Optional<InstructorProfile> findByIdAndSchoolMembershipSchoolId(UUID id, UUID schoolId);
 
+    @EntityGraph(attributePaths = {
+        "schoolMembership",
+        "schoolMembership.school",
+        "schoolMembership.user",
+        "categories"
+    })
+    Optional<InstructorProfile> findBySchoolMembershipSchoolIdAndSchoolMembershipUserId(UUID schoolId, UUID userId);
+
     boolean existsBySchoolMembershipId(UUID schoolMembershipId);
 
     @Query("""

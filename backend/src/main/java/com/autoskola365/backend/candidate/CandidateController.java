@@ -34,10 +34,20 @@ public class CandidateController {
         @PathVariable UUID schoolId,
         @RequestParam(required = false) String status,
         @RequestParam(required = false) String categoryCode,
+        @RequestParam(required = false) UUID assignedInstructorId,
+        @RequestParam(defaultValue = "false") boolean withoutInstructor,
         @RequestParam(required = false, name = "q") String query,
         @AuthenticationPrincipal AuthenticatedUser authenticatedUser
     ) {
-        return candidateService.list(schoolId, status, categoryCode, query, authenticatedUser);
+        return candidateService.list(
+            schoolId,
+            status,
+            categoryCode,
+            assignedInstructorId,
+            withoutInstructor,
+            query,
+            authenticatedUser
+        );
     }
 
     @GetMapping("/{candidateId}")

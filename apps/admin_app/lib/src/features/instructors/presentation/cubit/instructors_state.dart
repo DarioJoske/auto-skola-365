@@ -10,6 +10,7 @@ class InstructorsState {
     this.filters = const InstructorFilters(),
     this.errorMessage,
     this.errorStatusCode,
+    this.errorEventId = 0,
     this.isSubmitting = false,
   });
 
@@ -20,6 +21,7 @@ class InstructorsState {
   final InstructorFilters filters;
   final String? errorMessage;
   final int? errorStatusCode;
+  final int errorEventId;
   final bool isSubmitting;
 
   InstructorsState copyWith({
@@ -28,6 +30,7 @@ class InstructorsState {
     InstructorFilters? filters,
     String? errorMessage,
     int? errorStatusCode,
+    int? errorEventId,
     bool? isSubmitting,
   }) {
     return InstructorsState(
@@ -36,6 +39,7 @@ class InstructorsState {
       filters: filters ?? this.filters,
       errorMessage: errorMessage,
       errorStatusCode: errorStatusCode,
+      errorEventId: errorEventId ?? this.errorEventId,
       isSubmitting: isSubmitting ?? this.isSubmitting,
     );
   }

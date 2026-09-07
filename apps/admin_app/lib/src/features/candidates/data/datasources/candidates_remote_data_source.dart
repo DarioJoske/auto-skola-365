@@ -22,6 +22,9 @@ class CandidatesRemoteDataSource {
                 if (_hasValue(filters.status)) 'status': filters.status,
                 if (_hasValue(filters.categoryCode))
                   'categoryCode': filters.categoryCode,
+                if (_hasValue(filters.assignedInstructorId))
+                  'assignedInstructorId': filters.assignedInstructorId,
+                if (filters.withoutInstructor) 'withoutInstructor': true,
                 if (_hasValue(filters.query)) 'q': filters.query,
               },
             )

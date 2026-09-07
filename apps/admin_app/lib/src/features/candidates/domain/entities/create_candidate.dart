@@ -7,6 +7,7 @@ class CreateCandidate {
     required this.oib,
     required this.status,
     required this.categoryCode,
+    required this.assignedInstructorId,
     required this.notes,
   });
 
@@ -17,5 +18,6 @@ class CreateCandidate {
   final String? oib;
   final String status;
   final String categoryCode;
+  final String? assignedInstructorId;
   final String? notes;
 }

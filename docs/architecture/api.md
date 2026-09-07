@@ -204,6 +204,8 @@ Supported query filters:
 
 - `status`: candidate status, for example `LEAD` or `IN_DRIVING`.
 - `categoryCode`: driving category code, for example `B`.
+- `assignedInstructorId`: assigned instructor profile id.
+- `withoutInstructor`: when `true`, returns only candidates without an assigned instructor.
 - `q`: search across first name, last name, email, phone and OIB.
 
 Response:
@@ -221,6 +223,8 @@ Response:
     "status": "LEAD",
     "categoryCode": "B",
     "categoryName": "Passenger car",
+    "assignedInstructorId": "uuid",
+    "assignedInstructorName": "Ivan Ivic",
     "notes": "Prvi kandidat"
   }
 ]
@@ -243,6 +247,7 @@ Request:
   "oib": "98765432109",
   "status": "LEAD",
   "categoryCode": "B",
+  "assignedInstructorId": "uuid",
   "notes": "Prvi kandidat"
 }
 ```
@@ -273,6 +278,7 @@ Request:
   "oib": "98765432109",
   "status": "IN_DRIVING",
   "categoryCode": "B",
+  "assignedInstructorId": "uuid",
   "notes": "Prebacena u voznju"
 }
 ```
@@ -330,6 +336,7 @@ Request:
   "firstName": "Ivan",
   "lastName": "Ivic",
   "email": "ivan@example.com",
+  "password": "instruktor-123",
   "phone": "+385 91 111 222",
   "licenseNumber": "ZG-12345",
   "active": true,
@@ -343,6 +350,9 @@ Request:
   ]
 }
 ```
+
+`password` is required on create and must contain at least 8 characters. The
+created instructor can use that password for their first login.
 
 Response: `201 Created` with the created instructor object.
 
@@ -359,5 +369,170 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
-Request body matches the create request. Response: `200 OK` with the updated
-instructor object.
+Request body matches the create request, but `password` is optional on update.
+Omit it or send it blank to keep the current password; send a new value with at
+least 8 characters to reset the instructor password. Response: `200 OK` with the
+updated instructor object.
+
+## Lessons
+
+Lessons are school-scoped. Admin users need `lessons.manage`. Assigned
+instructors need `lessons.view_assigned` for instructor-facing lesson access.
+Candidate users need `lessons.reserve_own` and a linked `candidates.user_id`
+profile to reserve their own lessons. MVP scheduling focuses on `DRIVING`
+lessons.
+
+Lesson statuses:
+
+- `REQUESTED`: candidate/admin/instructor requested a slot.
+- `CONFIRMED`: instructor/admin confirmed the slot.
+- `COMPLETED`: lesson was completed.
+- `CANCELLED`: lesson was cancelled and no longer blocks overlaps.
+- `NO_SHOW`: candidate did not attend.
+
+Lesson types:
+
+- `DRIVING`
+- `THEORY`
+- `EXAM`
+
+MVP rule: only `DRIVING` can be created through the API for now. Duration is
+fixed to 60 minutes. `endAt` is optional; if omitted, the backend sets it to
+`startAt + 60 minutes`. If provided, it must match that 60-minute duration.
+
+Overlap rule: all lessons except `CANCELLED` block overlapping lessons for both
+the instructor and the candidate. Overlap returns `409 Conflict`.
+
+```http
+GET /api/schools/{schoolId}/lessons?from=2026-09-08T00:00:00Z&to=2026-09-09T00:00:00Z
+Authorization: Bearer <accessToken>
+```
+
+Supported query filters:
+
+- `from`: inclusive range start.
+- `to`: exclusive range end.
+- `instructorId`: optional instructor filter.
+- `candidateId`: optional candidate filter.
+- `status`: optional status filter.
+
+Response:
+
+```json
+[
+  {
+    "id": "uuid",
+    "schoolId": "uuid",
+    "candidateId": "uuid",
+    "candidateName": "Ana Anic",
+    "instructorId": "uuid",
+    "instructorName": "Ivan Ivic",
+    "categoryCode": "B",
+    "categoryName": "Passenger car",
+    "branchId": "uuid",
+    "branchName": "Glavna poslovnica",
+    "lessonType": "DRIVING",
+    "status": "REQUESTED",
+    "startAt": "2026-09-08T08:00:00Z",
+    "endAt": "2026-09-08T09:00:00Z",
+    "confirmedAt": null,
+    "cancelledAt": null,
+    "notes": "Prvi sat voznje",
+    "createdByRole": "ADMIN"
+  }
+]
+```
+
+```http
+POST /api/schools/{schoolId}/lessons
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "candidateId": "uuid",
+  "instructorId": "uuid",
+  "branchId": "uuid",
+  "lessonType": "DRIVING",
+  "status": "REQUESTED",
+  "startAt": "2026-09-08T08:00:00Z",
+  "endAt": "2026-09-08T09:00:00Z",
+  "notes": "Prvi sat voznje"
+}
+```
+
+Response: `201 Created` with the created lesson object.
+
+```http
+GET /api/schools/{schoolId}/lessons/instructor?from=2026-09-08T00:00:00Z&to=2026-09-09T00:00:00Z
+Authorization: Bearer <accessToken>
+```
+
+Instructor-facing list. Returns only lessons assigned to the authenticated
+instructor profile for the requested school. Supports `from`, `to` and `status`
+filters.
+
+```http
+GET /api/schools/{schoolId}/lessons/instructor/{lessonId}
+Authorization: Bearer <accessToken>
+```
+
+Instructor-facing detail. Returns `403 Forbidden` when the lesson belongs to a
+different instructor.
+
+```http
+POST /api/schools/{schoolId}/lessons/candidate/reservations
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+```
+
+Candidate-facing reservation. The request does not accept `candidateId`,
+`instructorId`, `lessonType` or `status`; backend resolves the candidate from
+the authenticated user, uses the candidate's assigned instructor, and creates a
+`REQUESTED` `DRIVING` lesson.
+
+Request:
+
+```json
+{
+  "branchId": "uuid",
+  "startAt": "2026-09-08T08:00:00Z",
+  "endAt": "2026-09-08T09:00:00Z",
+  "notes": "Zelim termin voznje"
+}
+```
+
+Response: `201 Created` with the created lesson object. If the candidate has no
+assigned instructor, the API returns `409 Conflict`.
+
+```http
+GET /api/schools/{schoolId}/lessons/{lessonId}
+Authorization: Bearer <accessToken>
+```
+
+Response: `200 OK` with the lesson object.
+
+```http
+PUT /api/schools/{schoolId}/lessons/{lessonId}
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+```
+
+Request body matches create. Response: `200 OK` with the updated lesson object.
+
+```http
+POST /api/schools/{schoolId}/lessons/{lessonId}/confirm
+Authorization: Bearer <accessToken>
+```
+
+Response: `200 OK` with status `CONFIRMED`.
+
+```http
+POST /api/schools/{schoolId}/lessons/{lessonId}/cancel
+Authorization: Bearer <accessToken>
+```
+
+Response: `200 OK` with status `CANCELLED`.

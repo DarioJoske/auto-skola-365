@@ -10,6 +10,8 @@ class Candidate {
     required this.status,
     required this.categoryCode,
     required this.categoryName,
+    required this.assignedInstructorId,
+    required this.assignedInstructorName,
     required this.notes,
   });
 
@@ -23,6 +25,8 @@ class Candidate {
   final String status;
   final String categoryCode;
   final String categoryName;
+  final String? assignedInstructorId;
+  final String? assignedInstructorName;
   final String? notes;
 
   String get fullName => '$firstName $lastName';

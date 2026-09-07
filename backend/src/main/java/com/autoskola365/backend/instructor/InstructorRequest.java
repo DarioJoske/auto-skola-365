@@ -15,6 +15,7 @@ public record InstructorRequest(
     @NotBlank String firstName,
     @NotBlank String lastName,
     @Email @NotBlank String email,
+    String password,
     String phone,
     String licenseNumber,
     Boolean active,

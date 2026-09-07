@@ -23,6 +23,14 @@ import '../features/instructors/domain/repositories/instructors_repository.dart'
 import '../features/instructors/domain/usecases/create_instructor.dart';
 import '../features/instructors/domain/usecases/list_instructors.dart';
 import '../features/instructors/domain/usecases/update_instructor.dart';
+import '../features/lessons/data/datasources/lessons_remote_data_source.dart';
+import '../features/lessons/data/repositories/lessons_repository_impl.dart';
+import '../features/lessons/domain/repositories/lessons_repository.dart';
+import '../features/lessons/domain/usecases/cancel_lesson.dart';
+import '../features/lessons/domain/usecases/confirm_lesson.dart';
+import '../features/lessons/domain/usecases/create_lesson.dart';
+import '../features/lessons/domain/usecases/list_lessons.dart';
+import '../features/lessons/domain/usecases/update_lesson.dart';
 
 final getIt = GetIt.instance;
 
@@ -94,5 +102,26 @@ void configureDependencies() {
     )
     ..registerLazySingleton<UpdateInstructorUseCase>(
       () => UpdateInstructorUseCase(getIt<InstructorsRepository>()),
+    )
+    ..registerLazySingleton<LessonsRemoteDataSource>(
+      () => LessonsRemoteDataSource(getIt<ApiClient>()),
+    )
+    ..registerLazySingleton<LessonsRepository>(
+      () => LessonsRepositoryImpl(getIt<LessonsRemoteDataSource>()),
+    )
+    ..registerLazySingleton<ListLessons>(
+      () => ListLessons(getIt<LessonsRepository>()),
+    )
+    ..registerLazySingleton<CreateLessonUseCase>(
+      () => CreateLessonUseCase(getIt<LessonsRepository>()),
+    )
+    ..registerLazySingleton<UpdateLessonUseCase>(
+      () => UpdateLessonUseCase(getIt<LessonsRepository>()),
+    )
+    ..registerLazySingleton<ConfirmLessonUseCase>(
+      () => ConfirmLessonUseCase(getIt<LessonsRepository>()),
+    )
+    ..registerLazySingleton<CancelLessonUseCase>(
+      () => CancelLessonUseCase(getIt<LessonsRepository>()),
     );
 }

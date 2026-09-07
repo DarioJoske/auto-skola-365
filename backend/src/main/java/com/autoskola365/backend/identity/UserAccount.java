@@ -52,6 +52,10 @@ public class UserAccount extends AuditableEntity {
         this.phone = phone;
     }
 
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     public UUID getId() {
         return id;
     }
