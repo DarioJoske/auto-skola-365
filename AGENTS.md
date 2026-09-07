@@ -95,6 +95,21 @@ Before adding a new dependency:
 - Protected endpoints must derive authorization from the authenticated user and active memberships/permissions.
 - Keep DTOs separate from JPA entities at API boundaries.
 
+## Error Handling
+
+- Backend APIs must return structured JSON errors with `status`, `code`,
+  `message`, and `path`.
+- Backend domain, validation, authorization, and database constraint failures
+  must be mapped to explicit HTTP statuses and user-safe messages.
+- Frontend API clients must preserve backend `status`, `code`, and `message`
+  in `Failure`.
+- UI must visibly surface every backend failure: mutation failures as snackbars,
+  load failures as inline error states with retry, and auth failures with a clear
+  session-expired message before redirect.
+- Do not swallow backend errors silently. Empty `catch` blocks, ignored `Left`
+  values, or generic fallback-only UI are not allowed unless the backend
+  response is genuinely unavailable.
+
 ## Verification
 
 For Flutter changes:
