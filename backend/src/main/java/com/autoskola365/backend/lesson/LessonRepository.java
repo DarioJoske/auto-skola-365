@@ -12,6 +12,11 @@ import org.springframework.data.repository.query.Param;
 
 public interface LessonRepository extends JpaRepository<Lesson, UUID> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select lesson from Lesson lesson where lesson.id = :id and lesson.school.id = :schoolId")
+    Optional<Lesson> findForUpdate(@Param("id") UUID id, @Param("schoolId") UUID schoolId);
+
+
     @EntityGraph(attributePaths = {
         "school",
         "candidate",

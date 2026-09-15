@@ -723,13 +723,15 @@ class _LessonDetailsDialog extends StatelessWidget {
                   : () => Navigator.of(context).pop(),
               child: const Text('Zatvori'),
             ),
-            TextButton.icon(
-              onPressed: state.isSubmitting
-                  ? null
-                  : () => Navigator.of(context).pop(_LessonDetailsAction.edit),
-              icon: const Icon(Icons.edit),
-              label: const Text('Uredi'),
-            ),
+            if (lesson.status != 'COMPLETED' && lesson.status != 'NO_SHOW')
+              TextButton.icon(
+                onPressed: state.isSubmitting
+                    ? null
+                    : () =>
+                          Navigator.of(context).pop(_LessonDetailsAction.edit),
+                icon: const Icon(Icons.edit),
+                label: const Text('Uredi'),
+              ),
             if (lesson.status == 'REQUESTED')
               FilledButton.icon(
                 onPressed: state.isSubmitting
@@ -745,7 +747,7 @@ class _LessonDetailsDialog extends StatelessWidget {
                 icon: const Icon(Icons.check),
                 label: const Text('Potvrdi'),
               ),
-            if (lesson.status != 'CANCELLED')
+            if (lesson.status == 'REQUESTED' || lesson.status == 'CONFIRMED')
               FilledButton.tonalIcon(
                 onPressed: state.isSubmitting
                     ? null

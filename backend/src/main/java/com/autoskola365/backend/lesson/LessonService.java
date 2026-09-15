@@ -200,7 +200,7 @@ public class LessonService {
         AuthenticatedUser authenticatedUser
     ) {
         requireManageLessons(schoolId, authenticatedUser);
-        Lesson lesson = lessonRepository.findByIdAndSchoolId(lessonId, schoolId)
+        Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
             .orElseThrow(() -> new LessonNotFoundException("Lesson does not exist."));
         LessonInputs inputs = getInputs(schoolId, request);
 
@@ -226,7 +226,7 @@ public class LessonService {
 
     @Transactional
     public LessonResponse confirm(UUID schoolId, UUID lessonId, AuthenticatedUser authenticatedUser) {
-        Lesson lesson = lessonRepository.findByIdAndSchoolId(lessonId, schoolId)
+        Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
             .orElseThrow(() -> new LessonNotFoundException("Lesson does not exist."));
         requireManageLessonsOrAssignedInstructor(schoolId, lesson.getInstructor(), authenticatedUser);
         ensureNoOverlap(lesson, lesson.getId());
@@ -237,11 +237,26 @@ public class LessonService {
 
     @Transactional
     public LessonResponse cancel(UUID schoolId, UUID lessonId, AuthenticatedUser authenticatedUser) {
-        Lesson lesson = lessonRepository.findByIdAndSchoolId(lessonId, schoolId)
+        Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
             .orElseThrow(() -> new LessonNotFoundException("Lesson does not exist."));
         requireManageLessonsOrAssignedInstructor(schoolId, lesson.getInstructor(), authenticatedUser);
         lesson.cancel();
 
+        return toResponse(lesson);
+    }
+
+    @Transactional
+    public LessonResponse complete(UUID schoolId, UUID lessonId, CompleteLessonRequest request,
+                                   AuthenticatedUser authenticatedUser) {
+        requireInstructorLessonAccess(schoolId, authenticatedUser);
+        InstructorProfile instructor = getInstructorForUser(schoolId, authenticatedUser);
+        if (!instructor.isActive()) {
+            throw new LessonAccessDeniedException("Instruktor nije aktivan.");
+        }
+        Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
+            .orElseThrow(() -> new LessonNotFoundException("Termin ne postoji."));
+        requireAssignedInstructor(instructor, lesson);
+        lesson.complete(request.note(), Instant.now());
         return toResponse(lesson);
     }
 
@@ -400,6 +415,8 @@ public class LessonService {
             lesson.getConfirmedAt(),
             lesson.getCancelledAt(),
             lesson.getNotes(),
+            lesson.getCompletedAt(),
+            lesson.getCompletionNote(),
             lesson.getCreatedByRole()
         );
     }

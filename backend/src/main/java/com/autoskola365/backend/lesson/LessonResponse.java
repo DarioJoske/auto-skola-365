@@ -21,6 +21,8 @@ public record LessonResponse(
     Instant confirmedAt,
     Instant cancelledAt,
     String notes,
+    Instant completedAt,
+    String completionNote,
     String createdByRole
 ) {
 }

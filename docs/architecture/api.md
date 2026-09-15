@@ -536,3 +536,79 @@ Authorization: Bearer <accessToken>
 ```
 
 Response: `200 OK` with status `CANCELLED`.
+
+### Complete an instructor lesson
+
+```http
+POST /api/schools/{schoolId}/lessons/{lessonId}/complete
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"note": "Vježbali smo parkiranje."}
+```
+
+Only the active instructor assigned to the lesson, with active school access,
+can complete it. The lesson must be `CONFIRMED` and its scheduled end must have
+passed (server time). `note` is optional, trimmed, and limited to 2000 characters.
+
+Response: `200 OK` with the lesson object, status `COMPLETED`, server-generated
+`completedAt`, and nullable `completionNote`. Existing `notes` are preserved.
+These two additional fields are also returned by lesson list/detail endpoints.
+
+Invalid status, early completion, or repeated completion returns `409 Conflict`;
+unauthorized school/instructor access returns `403 Forbidden`; invalid note
+length returns `400 Bad Request`. Errors use the standard structured JSON format.
+Completed lessons cannot be edited, confirmed, or cancelled. Mutations lock the
+lesson row for the transaction so concurrent actions cannot overwrite completion.
+
+Database migration: `V10__lesson_completion.sql` adds the completion columns.
+
+### Candidate skill progress (B category)
+
+```http
+GET /api/schools/{schoolId}/candidates/{candidateId}/progress
+GET /api/schools/{schoolId}/lessons/{lessonId}/progress
+Authorization: Bearer <accessToken>
+```
+
+Both return `candidateId`, `candidateName`, `categoryCode`, nullable `lessonId`,
+`editable`, `skills`, `statuses`, and `entries`. Skills/statuses are `{code,label}`
+options with Croatian labels. Each entry contains `lessonId`, `lessonEndAt`,
+`skill`, `status`, and `recordedAt`.
+
+Entries are ordered by lesson end descending, then recording time descending.
+The latest entry for each skill is its current assessment: editing an older
+lesson does not replace a newer lesson's assessment. No entry means unassessed,
+which is distinct from an explicit `NOT_STARTED` assessment.
+
+School users with `candidates.manage` may read their school's progress.
+Instructors need `progress.manage_assigned` and an active instructor profile
+assigned to the candidate. Lesson responses are editable only for that lesson's
+instructor, after completion, for B category. Other categories return an empty
+skill template and are read-only.
+
+```http
+POST /api/schools/{schoolId}/lessons/{lessonId}/progress
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"assessments":[{"skill":"PARKING","status":"NEEDS_PRACTICE"}]}
+```
+
+Accepts 1–10 distinct skills from the template. Statuses: `NOT_STARTED`,
+`IN_PROGRESS`, `NEEDS_PRACTICE`, `SATISFACTORY`, `MASTERED`. Only the lesson's
+active instructor with the progress permission and current candidate assignment
+can write. The lesson must be `COMPLETED`.
+
+Returns `200 OK` with refreshed progress. Saving inserts or corrects the selected
+skills for that lesson; omitted skills are unchanged. There is one assessment
+per lesson/skill, so repeated requests do not duplicate history. This is history
+across lessons, not an audit trail of every correction. The lesson row is locked
+while saving to serialize concurrent updates.
+
+Invalid/duplicate skills, invalid statuses, empty requests, or unsupported
+category return `400`; denied access returns `403`; an unfinished lesson returns
+`409`. All errors use the standard structured JSON format.
+
+Migration `V11__lesson_progress.sql` adds the assessment table, foreign key,
+unique lesson/skill constraint, and allowed skill/status constraints.

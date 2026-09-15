@@ -26,6 +26,9 @@ class AuthFlowIntegrationTest {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @Test
     void meWithoutTokenReturnsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/me"))
@@ -34,6 +37,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     @Sql(statements = {
+        "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
         "DELETE FROM instructor_availability_rules",
@@ -121,6 +125,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     @Sql(statements = {
+        "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
         "DELETE FROM instructor_availability_rules",
@@ -224,6 +229,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     @Sql(statements = {
+        "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
         "DELETE FROM instructor_availability_rules",
@@ -373,6 +379,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     @Sql(statements = {
+        "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
         "DELETE FROM instructor_availability_rules",
@@ -639,6 +646,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     @Sql(statements = {
+        "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
         "DELETE FROM instructor_availability_rules",
@@ -824,6 +832,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     @Sql(statements = {
+        "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
         "DELETE FROM instructor_availability_rules",
@@ -870,6 +879,20 @@ class AuthFlowIntegrationTest {
             .andExpect(jsonPath("$[0].id").value("60000000-0000-0000-0000-000000000001"))
             .andExpect(jsonPath("$[0].instructorId").value("40000000-0000-0000-0000-000000000001"));
 
+        mockMvc.perform(get("/api/schools/10000000-0000-0000-0000-000000000001/candidates/instructor")
+                .header("Authorization", "Bearer " + instructorToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].id").value("50000000-0000-0000-0000-000000000001"))
+            .andExpect(jsonPath("$[0].firstName").value("Ana"))
+            .andExpect(jsonPath("$[0].assignedInstructorId").value("40000000-0000-0000-0000-000000000001"));
+
+        mockMvc.perform(get("/api/schools/10000000-0000-0000-0000-000000000001/candidates/instructor")
+                .header("Authorization", "Bearer " + instructorToken)
+                .queryParam("q", "Mia"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(0));
+
         mockMvc.perform(get("/api/schools/10000000-0000-0000-0000-000000000001/lessons/instructor/60000000-0000-0000-0000-000000000002")
                 .header("Authorization", "Bearer " + instructorToken))
             .andExpect(status().isForbidden());
@@ -889,6 +912,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     @Sql(statements = {
+        "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
         "DELETE FROM instructor_availability_rules",
@@ -963,4 +987,176 @@ class AuthFlowIntegrationTest {
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message").value("Candidate does not have an assigned instructor."));
     }
+    @Test
+    @Sql(statements = {
+        "DELETE FROM lesson_progress",
+        "DELETE FROM lessons",
+        "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_rules",
+        "DELETE FROM instructors_categories",
+        "DELETE FROM instructor_profiles",
+        "DELETE FROM school_memberships",
+        "DELETE FROM users",
+        "DELETE FROM branches",
+        "DELETE FROM schools",
+        "DELETE FROM role_permissions",
+        "DELETE FROM roles",
+        "DELETE FROM permissions",
+        "DELETE FROM driving_categories",
+        "INSERT INTO roles (id, \"key\", name, scope) VALUES ('00000000-0000-0000-0000-000000000002', 'instructor', 'Instructor', 'SCHOOL')",
+        "INSERT INTO permissions (id, \"key\", description) VALUES ('00000000-0000-0000-0000-000000000106', 'lessons.view_assigned', 'View assigned instructor lessons.')",
+        "INSERT INTO role_permissions (role_id, permission_id) VALUES ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000106')",
+        "INSERT INTO schools (id, name, status, created_at, updated_at) VALUES ('10000000-0000-0000-0000-000000000001', 'Auto Skola Demo', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO users (id, email, password_hash, first_name, last_name, status, created_at, updated_at) VALUES ('20000000-0000-0000-0000-000000000001', 'ivan@example.com', 'x', 'Ivan', 'Ivic', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO users (id, email, password_hash, first_name, last_name, status, created_at, updated_at) VALUES ('20000000-0000-0000-0000-000000000002', 'marko@example.com', 'x', 'Marko', 'Maric', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO school_memberships (id, school_id, user_id, role_id, status, created_at, updated_at) VALUES ('30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO school_memberships (id, school_id, user_id, role_id, status, created_at, updated_at) VALUES ('30000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO driving_categories (id, code, name, active) VALUES ('00000000-0000-0000-0000-000000000201', 'B', 'Passenger car', true)",
+        "INSERT INTO instructor_profiles (id, school_membership_id, license_number, active, created_at, updated_at) VALUES ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'ZG-1', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO instructor_profiles (id, school_membership_id, license_number, active, created_at, updated_at) VALUES ('40000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000002', 'ZG-2', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO instructors_categories (instructor_profile_id, driving_category_id) VALUES ('40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000201')",
+        "INSERT INTO instructors_categories (instructor_profile_id, driving_category_id) VALUES ('40000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000201')",
+        "INSERT INTO candidates (id, school_id, driving_category_id, assigned_instructor_profile_id, first_name, last_name, status, created_at, updated_at) VALUES ('50000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000201', '40000000-0000-0000-0000-000000000001', 'Ana', 'Anic', 'ENROLLED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO candidates (id, school_id, driving_category_id, assigned_instructor_profile_id, first_name, last_name, status, created_at, updated_at) VALUES ('50000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000201', '40000000-0000-0000-0000-000000000002', 'Mia', 'Matic', 'ENROLLED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO lessons (id, school_id, candidate_id, instructor_profile_id, driving_category_id, lesson_type, status, start_at, end_at, created_by_role, created_at, updated_at) VALUES ('60000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000201', 'DRIVING', 'REQUESTED', '2026-09-08T08:00:00Z', '2026-09-08T09:00:00Z', 'CANDIDATE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO lessons (id, school_id, candidate_id, instructor_profile_id, driving_category_id, lesson_type, status, start_at, end_at, created_by_role, created_at, updated_at) VALUES ('60000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000201', 'DRIVING', 'REQUESTED', '2026-09-08T10:00:00Z', '2026-09-08T11:00:00Z', 'CANDIDATE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+    })
+    void instructorCompletesOwnPastLessonAndFinalStateIsProtected() throws Exception {
+        String school = "10000000-0000-0000-0000-000000000001";
+        String lessonId = "60000000-0000-0000-0000-000000000001";
+        String url = "/api/schools/" + school + "/lessons/" + lessonId;
+        String token = jwtService.createAccessToken(
+            java.util.UUID.fromString("20000000-0000-0000-0000-000000000001"), "ivan@example.com");
+        String other = jwtService.createAccessToken(
+            java.util.UUID.fromString("20000000-0000-0000-0000-000000000002"), "marko@example.com");
+        mockMvc.perform(post(url + "/complete").contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isUnauthorized());
+        mockMvc.perform(post(url + "/complete").header("Authorization", "Bearer " + other)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/schools/10000000-0000-0000-0000-000000000099/lessons/" + lessonId + "/complete")
+                .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(post(url + "/complete").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.path").value(url + "/complete"));
+        mockMvc.perform(post(url + "/confirm").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk());
+        jdbcTemplate.update("UPDATE lessons SET start_at = ?, end_at = ?, notes = ? WHERE id = ?",
+            java.sql.Timestamp.from(java.time.Instant.now().plusSeconds(3600)),
+            java.sql.Timestamp.from(java.time.Instant.now().plusSeconds(7200)),
+            "Postojeća napomena", java.util.UUID.fromString(lessonId));
+        mockMvc.perform(post(url + "/complete").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isConflict());
+        jdbcTemplate.update("UPDATE lessons SET start_at = ?, end_at = ? WHERE id = ?",
+            java.sql.Timestamp.from(java.time.Instant.now().minusSeconds(7200)),
+            java.sql.Timestamp.from(java.time.Instant.now().minusSeconds(3600)), java.util.UUID.fromString(lessonId));
+        mockMvc.perform(post(url + "/complete").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"note\":\"" + "x".repeat(2001) + "\"}"))
+            .andExpect(status().isBadRequest());
+        mockMvc.perform(post(url + "/complete").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"note\":\"  Vježbali smo parkiranje.  \"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("COMPLETED"))
+            .andExpect(jsonPath("$.completedAt").isString())
+            .andExpect(jsonPath("$.completionNote").value("Vježbali smo parkiranje."))
+            .andExpect(jsonPath("$.notes").value("Postojeća napomena"));
+        for (String action : new String[] {"complete", "confirm", "cancel"}) {
+            mockMvc.perform(post(url + "/" + action).header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isConflict());
+        }
+        mockMvc.perform(get("/api/schools/" + school + "/lessons/instructor/" + lessonId)
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("COMPLETED"))
+            .andExpect(jsonPath("$.completionNote").value("Vježbali smo parkiranje."));
+    }
+
+    @Test
+    @Sql(statements = {
+        "DELETE FROM lesson_progress",
+        "DELETE FROM lessons",
+        "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_rules",
+        "DELETE FROM instructors_categories",
+        "DELETE FROM instructor_profiles",
+        "DELETE FROM school_memberships",
+        "DELETE FROM users",
+        "DELETE FROM branches",
+        "DELETE FROM schools",
+        "DELETE FROM role_permissions",
+        "DELETE FROM roles",
+        "DELETE FROM permissions",
+        "DELETE FROM driving_categories",
+        "INSERT INTO roles (id, \"key\", name, scope) VALUES ('00000000-0000-0000-0000-000000000002', 'instructor', 'Instructor', 'SCHOOL')",
+        "INSERT INTO permissions (id, \"key\", description) VALUES ('00000000-0000-0000-0000-000000000106', 'lessons.view_assigned', 'View assigned instructor lessons.')",
+        "INSERT INTO role_permissions (role_id, permission_id) VALUES ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000106')",
+        "INSERT INTO schools (id, name, status, created_at, updated_at) VALUES ('10000000-0000-0000-0000-000000000001', 'Auto Skola Demo', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO users (id, email, password_hash, first_name, last_name, status, created_at, updated_at) VALUES ('20000000-0000-0000-0000-000000000001', 'ivan@example.com', 'x', 'Ivan', 'Ivic', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO users (id, email, password_hash, first_name, last_name, status, created_at, updated_at) VALUES ('20000000-0000-0000-0000-000000000002', 'marko@example.com', 'x', 'Marko', 'Maric', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO school_memberships (id, school_id, user_id, role_id, status, created_at, updated_at) VALUES ('30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO school_memberships (id, school_id, user_id, role_id, status, created_at, updated_at) VALUES ('30000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO driving_categories (id, code, name, active) VALUES ('00000000-0000-0000-0000-000000000201', 'B', 'Passenger car', true)",
+        "INSERT INTO instructor_profiles (id, school_membership_id, license_number, active, created_at, updated_at) VALUES ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'ZG-1', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO instructor_profiles (id, school_membership_id, license_number, active, created_at, updated_at) VALUES ('40000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000002', 'ZG-2', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO instructors_categories (instructor_profile_id, driving_category_id) VALUES ('40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000201')",
+        "INSERT INTO instructors_categories (instructor_profile_id, driving_category_id) VALUES ('40000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000201')",
+        "INSERT INTO candidates (id, school_id, driving_category_id, assigned_instructor_profile_id, first_name, last_name, status, created_at, updated_at) VALUES ('50000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000201', '40000000-0000-0000-0000-000000000001', 'Ana', 'Anic', 'ENROLLED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO candidates (id, school_id, driving_category_id, assigned_instructor_profile_id, first_name, last_name, status, created_at, updated_at) VALUES ('50000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000201', '40000000-0000-0000-0000-000000000002', 'Mia', 'Matic', 'ENROLLED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO lessons (id, school_id, candidate_id, instructor_profile_id, driving_category_id, lesson_type, status, start_at, end_at, created_by_role, created_at, updated_at) VALUES ('60000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000201', 'DRIVING', 'REQUESTED', '2026-09-08T08:00:00Z', '2026-09-08T09:00:00Z', 'CANDIDATE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO lessons (id, school_id, candidate_id, instructor_profile_id, driving_category_id, lesson_type, status, start_at, end_at, created_by_role, created_at, updated_at) VALUES ('60000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000201', 'DRIVING', 'REQUESTED', '2026-09-08T10:00:00Z', '2026-09-08T11:00:00Z', 'CANDIDATE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+    })
+    void progressRequiresCompletedOwnLessonAndKeepsChronologicalHistory() throws Exception {
+        String school="10000000-0000-0000-0000-000000000001";
+        String own="60000000-0000-0000-0000-000000000001";
+        String other="60000000-0000-0000-0000-000000000002";
+        String base="/api/schools/"+school;
+        String token=jwtService.createAccessToken(java.util.UUID.fromString("20000000-0000-0000-0000-000000000001"),"ivan@example.com");
+        String assessment="{\"assessments\":[{\"skill\":\"PARKING\",\"status\":\"NEEDS_PRACTICE\"}]}";
+        mockMvc.perform(get(base+"/candidates/50000000-0000-0000-0000-000000000001/progress")
+            .header("Authorization","Bearer "+token)).andExpect(status().isForbidden());
+        jdbcTemplate.update("INSERT INTO permissions (id, \"key\", description) VALUES (?, 'progress.manage_assigned', 'Assess progress')",
+            java.util.UUID.fromString("00000000-0000-0000-0000-000000000199"));
+        jdbcTemplate.update("INSERT INTO role_permissions (role_id,permission_id) VALUES (?,?)",
+            java.util.UUID.fromString("00000000-0000-0000-0000-000000000002"),java.util.UUID.fromString("00000000-0000-0000-0000-000000000199"));
+        mockMvc.perform(get(base+"/candidates/50000000-0000-0000-0000-000000000001/progress")
+            .header("Authorization","Bearer "+token)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.skills.length()").value(10)).andExpect(jsonPath("$.entries.length()").value(0));
+        mockMvc.perform(post(base+"/lessons/"+own+"/progress").header("Authorization","Bearer "+token)
+            .contentType(MediaType.APPLICATION_JSON).content(assessment)).andExpect(status().isConflict());
+        mockMvc.perform(post(base+"/lessons/"+other+"/progress").header("Authorization","Bearer "+token)
+            .contentType(MediaType.APPLICATION_JSON).content(assessment)).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/schools/10000000-0000-0000-0000-000000000099/candidates/50000000-0000-0000-0000-000000000001/progress")
+            .header("Authorization","Bearer "+token)).andExpect(status().isForbidden());
+        mockMvc.perform(get(base+"/candidates/50000000-0000-0000-0000-000000000002/progress")
+            .header("Authorization","Bearer "+token)).andExpect(status().isForbidden());
+        jdbcTemplate.update("UPDATE lessons SET status='COMPLETED' WHERE id=?",java.util.UUID.fromString(own));
+        for(String invalid:new String[]{"{}", "{\"assessments\":[]}",
+            "{\"assessments\":[null]}",assessment.replace("PARKING","UNKNOWN"),assessment.replace("NEEDS_PRACTICE","UNKNOWN"),
+            "{\"assessments\":[{\"skill\":\"PARKING\",\"status\":\"MASTERED\"},{\"skill\":\"PARKING\",\"status\":\"MASTERED\"}]}"}) {
+            mockMvc.perform(post(base+"/lessons/"+own+"/progress").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(invalid)).andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(post(base+"/lessons/"+own+"/progress").header("Authorization","Bearer "+token)
+            .contentType(MediaType.APPLICATION_JSON).content(assessment)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.entries[0].status").value("NEEDS_PRACTICE"));
+        jdbcTemplate.update("UPDATE lessons SET status='COMPLETED', candidate_id=?, instructor_profile_id=? WHERE id=?",
+            java.util.UUID.fromString("50000000-0000-0000-0000-000000000001"),
+            java.util.UUID.fromString("40000000-0000-0000-0000-000000000001"),java.util.UUID.fromString(other));
+        mockMvc.perform(post(base+"/lessons/"+other+"/progress").header("Authorization","Bearer "+token)
+            .contentType(MediaType.APPLICATION_JSON).content(assessment.replace("NEEDS_PRACTICE","MASTERED"))).andExpect(status().isOk());
+        mockMvc.perform(post(base+"/lessons/"+own+"/progress").header("Authorization","Bearer "+token)
+            .contentType(MediaType.APPLICATION_JSON).content(assessment.replace("NEEDS_PRACTICE","SATISFACTORY"))).andExpect(status().isOk())
+            .andExpect(jsonPath("$.entries.length()").value(2))
+            .andExpect(jsonPath("$.entries[0].lessonId").value(other))
+            .andExpect(jsonPath("$.entries[0].status").value("MASTERED"))
+            .andExpect(jsonPath("$.entries[1].status").value("SATISFACTORY"));
+        mockMvc.perform(get(base+"/candidates/50000000-0000-0000-0000-000000000001/progress")
+            .header("Authorization","Bearer "+token)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.editable").value(false)).andExpect(jsonPath("$.entries.length()").value(2));
+    }
+
 }

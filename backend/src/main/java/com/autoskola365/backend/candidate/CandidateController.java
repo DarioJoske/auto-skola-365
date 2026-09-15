@@ -50,6 +50,23 @@ public class CandidateController {
         );
     }
 
+    @GetMapping("/instructor")
+    public List<CandidateResponse> listInstructorCandidates(
+        @PathVariable UUID schoolId,
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false) String categoryCode,
+        @RequestParam(required = false, name = "q") String query,
+        @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        return candidateService.listInstructorCandidates(
+            schoolId,
+            status,
+            categoryCode,
+            query,
+            authenticatedUser
+        );
+    }
+
     @GetMapping("/{candidateId}")
     public CandidateResponse get(
         @PathVariable UUID schoolId,

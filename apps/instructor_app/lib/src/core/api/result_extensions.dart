@@ -9,4 +9,11 @@ extension EitherFailureResolver<T> on Either<Failure, T> {
   }) {
     return fold((failure) => onFailure(failure.message), onSuccess);
   }
+
+  R resolveWithFailure<R>({
+    required R Function(Failure failure) onFailure,
+    required R Function(T value) onSuccess,
+  }) {
+    return fold(onFailure, onSuccess);
+  }
 }

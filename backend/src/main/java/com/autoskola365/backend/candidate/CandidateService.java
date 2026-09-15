@@ -19,6 +19,7 @@ import com.autoskola365.backend.training.DrivingCategoryRepository;
 public class CandidateService {
 
     private static final String MANAGE_CANDIDATES = "candidates.manage";
+    private static final String VIEW_ASSIGNED_LESSONS = "lessons.view_assigned";
 
     private final CandidateRepository candidateRepository;
     private final SchoolRepository schoolRepository;
@@ -62,6 +63,30 @@ public class CandidateService {
             .filter(candidate -> normalizedCategory == null || candidate.getDrivingCategory().getCode().equals(normalizedCategory))
             .filter(candidate -> !withoutInstructor || candidate.getAssignedInstructor() == null)
             .filter(candidate -> assignedInstructorId == null || matchesAssignedInstructor(candidate, assignedInstructorId))
+            .filter(candidate -> normalizedQuery == null || matchesQuery(candidate, normalizedQuery))
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CandidateResponse> listInstructorCandidates(
+        UUID schoolId,
+        String status,
+        String categoryCode,
+        String query,
+        AuthenticatedUser authenticatedUser
+    ) {
+        requireInstructorAccess(schoolId, authenticatedUser);
+        InstructorProfile instructor = getInstructorForUser(schoolId, authenticatedUser);
+
+        String normalizedStatus = status == null || status.isBlank() ? null : CandidateStatus.normalize(status);
+        String normalizedCategory = categoryCode == null || categoryCode.isBlank() ? null : categoryCode.trim().toUpperCase();
+        String normalizedQuery = query == null || query.isBlank() ? null : query.trim();
+
+        return candidateRepository.findBySchoolIdAndAssignedInstructorIdOrderByCreatedAtDesc(schoolId, instructor.getId())
+            .stream()
+            .filter(candidate -> normalizedStatus == null || candidate.getStatus().equals(normalizedStatus))
+            .filter(candidate -> normalizedCategory == null || candidate.getDrivingCategory().getCode().equals(normalizedCategory))
             .filter(candidate -> normalizedQuery == null || matchesQuery(candidate, normalizedQuery))
             .map(this::toResponse)
             .toList();
@@ -166,6 +191,17 @@ public class CandidateService {
         if (!authorizationService.hasSchoolPermission(authenticatedUser, schoolId, MANAGE_CANDIDATES)) {
             throw new CandidateAccessDeniedException("User cannot manage candidates for this school.");
         }
+    }
+
+    private void requireInstructorAccess(UUID schoolId, AuthenticatedUser authenticatedUser) {
+        if (!authorizationService.hasSchoolPermission(authenticatedUser, schoolId, VIEW_ASSIGNED_LESSONS)) {
+            throw new CandidateAccessDeniedException("User cannot view assigned candidates for this school.");
+        }
+    }
+
+    private InstructorProfile getInstructorForUser(UUID schoolId, AuthenticatedUser authenticatedUser) {
+        return instructorRepository.findBySchoolMembershipSchoolIdAndSchoolMembershipUserId(schoolId, authenticatedUser.userId())
+            .orElseThrow(() -> new CandidateAccessDeniedException("User is not an instructor for this school."));
     }
 
     private boolean matchesQuery(Candidate candidate, String query) {

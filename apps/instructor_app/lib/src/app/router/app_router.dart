@@ -1,9 +1,12 @@
+import '../../features/progress/presentation/pages/progress_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/auth/presentation/cubit/auth_state.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/candidates/presentation/pages/instructor_candidates_page.dart';
+import '../../features/schedule/presentation/pages/lesson_detail_page.dart';
 import '../../features/schedule/presentation/pages/schedule_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/shell/presentation/pages/instructor_shell_page.dart';
@@ -46,6 +49,38 @@ GoRouter createAppRouter({required AuthCubit authCubit}) {
             path: '/',
             pageBuilder: (context, state) =>
                 _noTransitionPage(state, const SchedulePage()),
+          ),
+          GoRoute(
+            path: '/lessons/:lessonId',
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              LessonDetailPage(lessonId: state.pathParameters['lessonId']!),
+            ),
+          ),
+          GoRoute(
+            path: '/candidates',
+            pageBuilder: (context, state) =>
+                _noTransitionPage(state, const InstructorCandidatesPage()),
+          ),
+          GoRoute(
+            path: '/candidates/:id/progress',
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              ProgressPage(
+                resource: 'candidates',
+                id: state.pathParameters['id']!,
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/lessons/:id/progress',
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              ProgressPage(
+                resource: 'lessons',
+                id: state.pathParameters['id']!,
+              ),
+            ),
           ),
           GoRoute(
             path: '/settings',

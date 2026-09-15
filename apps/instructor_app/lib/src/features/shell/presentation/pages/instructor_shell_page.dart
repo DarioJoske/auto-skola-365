@@ -13,7 +13,11 @@ class InstructorShellPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    final selectedIndex = location.startsWith('/settings') ? 1 : 0;
+    final selectedIndex = switch (location) {
+      final value when value.startsWith('/candidates') => 1,
+      final value when value.startsWith('/settings') => 2,
+      _ => 0,
+    };
 
     return Scaffold(
       appBar: AppBar(
@@ -34,13 +38,22 @@ class InstructorShellPage extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) {
-          context.go(index == 0 ? '/' : '/settings');
+          context.go(switch (index) {
+            0 => '/',
+            1 => '/candidates',
+            _ => '/settings',
+          });
         },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.calendar_today_outlined),
             selectedIcon: Icon(Icons.calendar_today),
             label: 'Raspored',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
+            label: 'Kandidati',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
