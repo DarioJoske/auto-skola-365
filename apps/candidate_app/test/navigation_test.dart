@@ -113,92 +113,103 @@ void main() {
     },
   );
 
-  testWidgets(
-    'tabs switch immediately without overlapping pages',
-    (tester) async {
-      final user = (await Remote().login(
-        email: 'ana@example.com',
-        password: 'Password123!',
-      )).user.toEntity();
-      final repository = SessionRepository(
-        AuthSession(
-          accessToken: 'token',
-          user: user,
-          candidateMembership: user.candidateMembership!,
-        ),
+  for (final width in [360.0, 390.0]) {
+    for (final scale in [1.0, 2.0]) {
+      testWidgets(
+        'tabs switch immediately without overlapping pages at $width/$scale',
+        (tester) async {
+          tester.view.physicalSize = Size(width, 900);
+          tester.view.devicePixelRatio = 1;
+          tester.platformDispatcher.textScaleFactorTestValue = scale;
+          addTearDown(tester.view.reset);
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          final user = (await Remote().login(
+            email: 'ana@example.com',
+            password: 'Password123!',
+          )).user.toEntity();
+          final repository = SessionRepository(
+            AuthSession(
+              accessToken: 'token',
+              user: user,
+              candidateMembership: user.candidateMembership!,
+            ),
+          );
+          final auth = AuthCubit(
+            bootstrapAuthSession: BootstrapAuthSession(repository),
+            login: Login(repository),
+            logout: Logout(repository),
+          );
+          final portal = PortalFake();
+          var loadCount = 0;
+          portal.onLoad = () async {
+            loadCount++;
+            return Right(portal.value);
+          };
+          getIt.registerSingleton<AuthCubit>(auth);
+          getIt.registerSingleton<LoadPortal>(LoadPortal(portal));
+          getIt.registerSingleton<RequestLesson>(RequestLesson(portal));
+          addTearDown(() async {
+            await getIt.reset();
+            await auth.close();
+          });
+          await tester.pumpWidget(const CandidateApp());
+          await tester.pumpAndSettle();
+          expect(find.text('Prijavi se'), findsOneWidget);
+          await tester.enterText(
+            find.widgetWithText(TextFormField, 'Email'),
+            'ana@example.com',
+          );
+          await tester.enterText(
+            find.widgetWithText(TextFormField, 'Lozinka'),
+            'Password123!',
+          );
+          await tester.ensureVisible(find.text('Prijavi se'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Prijavi se'));
+          await tester.pumpAndSettle();
+          expect(find.text('Bok, Ana.'), findsOneWidget);
+          final navigation = tester.element(find.byType(NavigationBar));
+          await tester.tap(find.text('Termini'));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 16));
+          expect(find.text('Tvoji termini'), findsOneWidget);
+          expect(find.text('Bok, Ana.'), findsNothing);
+          expect(tester.element(find.byType(NavigationBar)), same(navigation));
+          expect(loadCount, 1);
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Povijest'));
+          await tester.pumpAndSettle();
+          expect(find.text('Odrađeno'), findsOneWidget);
+          await tester.tap(find.text('Moj profil'));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 16));
+          expect(find.text('Tvoji termini'), findsNothing);
+          expect(find.text('ana@example.com'), findsOneWidget);
+          // Rapid tab changes must leave only the selected destination visible.
+          await tester.tap(find.text('Pregled'));
+          await tester.pump();
+          await tester.tap(find.text('Termini'));
+          await tester.pump();
+          await tester.tap(find.text('Moj profil'));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 16));
+          expect(find.text('Bok, Ana.'), findsNothing);
+          expect(find.text('Tvoji termini'), findsNothing);
+          expect(loadCount, 1);
+          await tester.pumpAndSettle();
+          expect(find.text('ana@example.com'), findsOneWidget);
+          await tester.tap(find.byTooltip('Odjavi se'));
+          await tester.pumpAndSettle();
+          expect(find.text('Prijavi se'), findsOneWidget);
+          expect(find.text('ana@example.com'), findsNothing);
+          expect(tester.takeException(), isNull);
+          await tester.pumpWidget(const SizedBox());
+        },
+        variant: TargetPlatformVariant({
+          TargetPlatform.android,
+          TargetPlatform.iOS,
+        }),
       );
-      final auth = AuthCubit(
-        bootstrapAuthSession: BootstrapAuthSession(repository),
-        login: Login(repository),
-        logout: Logout(repository),
-      );
-      final portal = PortalFake();
-      var loadCount = 0;
-      portal.onLoad = () async {
-        loadCount++;
-        return Right(portal.value);
-      };
-      getIt.registerSingleton<AuthCubit>(auth);
-      getIt.registerSingleton<LoadPortal>(LoadPortal(portal));
-      getIt.registerSingleton<RequestLesson>(RequestLesson(portal));
-      addTearDown(() async {
-        await getIt.reset();
-        await auth.close();
-      });
-      await tester.pumpWidget(const CandidateApp());
-      await tester.pumpAndSettle();
-      expect(find.text('Prijavi se'), findsOneWidget);
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Email'),
-        'ana@example.com',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Lozinka'),
-        'Password123!',
-      );
-      await tester.tap(find.text('Prijavi se'));
-      await tester.pumpAndSettle();
-      expect(find.text('Bok, Ana.'), findsOneWidget);
-      final navigation = tester.element(find.byType(NavigationBar));
-      await tester.tap(find.text('Termini'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
-      expect(find.text('Tvoji termini'), findsOneWidget);
-      expect(find.text('Bok, Ana.'), findsNothing);
-      expect(tester.element(find.byType(NavigationBar)), same(navigation));
-      expect(loadCount, 1);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Povijest'));
-      await tester.pumpAndSettle();
-      expect(find.text('Odrađeno'), findsOneWidget);
-      await tester.tap(find.text('Moj profil'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
-      expect(find.text('Tvoji termini'), findsNothing);
-      expect(find.text('ana@example.com'), findsOneWidget);
-      // Rapid tab changes must leave only the selected destination visible.
-      await tester.tap(find.text('Pregled'));
-      await tester.pump();
-      await tester.tap(find.text('Termini'));
-      await tester.pump();
-      await tester.tap(find.text('Moj profil'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
-      expect(find.text('Bok, Ana.'), findsNothing);
-      expect(find.text('Tvoji termini'), findsNothing);
-      expect(loadCount, 1);
-      await tester.pumpAndSettle();
-      expect(find.text('ana@example.com'), findsOneWidget);
-      await tester.tap(find.byTooltip('Odjavi se'));
-      await tester.pumpAndSettle();
-      expect(find.text('Prijavi se'), findsOneWidget);
-      expect(find.text('ana@example.com'), findsNothing);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox());
-    },
-    variant: TargetPlatformVariant({
-      TargetPlatform.android,
-      TargetPlatform.iOS,
-    }),
-  );
+    }
+  }
 }

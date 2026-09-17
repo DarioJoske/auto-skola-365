@@ -15,7 +15,7 @@ final class PortalContent extends StatelessWidget {
   Widget build(BuildContext context) => BlocBuilder<PortalCubit, PortalState>(
     builder: (context, state) {
       if (state.data == null && (state.loading || state.loadFailure == null)) {
-        return const Center(child: CircularProgressIndicator());
+        return const AppLoadingState();
       }
       return RefreshIndicator(
         onRefresh: () => context.read<PortalCubit>().load(),
@@ -27,22 +27,21 @@ final class PortalContent extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (state.loading) ...[
-                    const LinearProgressIndicator(),
+                    const AppLoadingState(isRefreshing: true),
                     const SizedBox(height: 16),
                   ],
                   if (state.loadFailure != null) ...[
-                    AppEmptyState(
-                      icon: Icons.cloud_off_outlined,
-                      title: 'Podatke nije moguće učitati',
+                    AppInlineError(
                       message: state.loadFailure!.message,
-                      action: OutlinedButton(
-                        onPressed: () => context.read<PortalCubit>().load(),
-                        child: const Text('Pokušaj ponovno'),
-                      ),
+                      onRetry: () => context.read<PortalCubit>().load(),
                     ),
                     const SizedBox(height: 16),
                   ],
-                  if (state.data != null) builder(context, state.data!),
+                  if (state.data != null)
+                    KeyedSubtree(
+                      key: const ValueKey('portal-data'),
+                      child: builder(context, state.data!),
+                    ),
                 ],
               ),
             ),
@@ -101,13 +100,14 @@ final class HomePage extends StatelessWidget {
             },
           ),
           const SizedBox(height: 32),
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 16,
             children: [
-              Expanded(
-                child: Text(
-                  'Tvoji termini',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+              Text(
+                'Tvoji termini',
+                style: Theme.of(context).textTheme.titleLarge,
               ),
               TextButton(
                 onPressed: () => context.go('/lessons'),
@@ -155,11 +155,13 @@ final class _NextLesson extends StatelessWidget {
                 children: [
                   Icon(Icons.directions_car_outlined, color: Colors.white),
                   SizedBox(width: 10),
-                  Text(
-                    'SLJEDEĆA VOŽNJA',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1,
+                  Expanded(
+                    child: Text(
+                      'SLJEDEĆA VOŽNJA',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1,
+                      ),
                     ),
                   ),
                 ],

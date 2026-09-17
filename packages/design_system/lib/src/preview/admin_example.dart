@@ -99,8 +99,7 @@ class _AdminExampleState extends State<AdminDesignSystemExample> {
         ),
       ],
       const SizedBox(height: AppSpacing.md),
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
+      AppHorizontalScroll(
         child: DataTable(
           dataRowMinHeight: 64,
           dataRowMaxHeight: double.infinity,

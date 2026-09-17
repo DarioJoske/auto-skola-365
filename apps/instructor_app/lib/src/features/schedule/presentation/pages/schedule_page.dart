@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import '../../../candidates/domain/usecases/list_instructor_candidates.dart';
 import '../../domain/usecases/reserve_instructor_lesson.dart';
 import '../cubit/reservation_cubit.dart';
@@ -187,9 +188,11 @@ class _ScheduleViewState extends State<ScheduleView> {
           return;
         }
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        if (state.errorStatusCode == 401) {
+          showSessionExpired(context);
+        } else {
+          showAppSnackBar(context, message);
+        }
         if (state.errorStatusCode == 401) {
           context.read<AuthCubit>().logout();
         }
@@ -204,143 +207,152 @@ class _ScheduleViewState extends State<ScheduleView> {
                 ScheduleRangeMode.week => CalendarView.week,
               };
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: Column(
-                      children: [
-                        _ScheduleHeader(
-                          selectedDate: state.selectedDate,
-                          rangeMode: state.rangeMode,
-                          instructorName: authState.user?.fullName,
-                          onPreviousDay: () =>
-                              context.read<ScheduleCubit>().moveByDays(-1),
-                          onNextDay: () =>
-                              context.read<ScheduleCubit>().moveByDays(1),
-                          onRefresh: () => context.read<ScheduleCubit>().load(),
-                          onPickDate: () =>
-                              _pickDate(context, state.selectedDate),
-                        ),
-                        const SizedBox(height: 16),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: FilledButton.icon(
-                            onPressed: () =>
-                                _reserve(context, state.selectedDate),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Rezerviraj termin'),
+              return CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: Column(
+                        children: [
+                          _ScheduleHeader(
+                            selectedDate: state.selectedDate,
+                            rangeMode: state.rangeMode,
+                            instructorName: authState.user?.fullName,
+                            onPreviousDay: () =>
+                                context.read<ScheduleCubit>().moveByDays(-1),
+                            onNextDay: () =>
+                                context.read<ScheduleCubit>().moveByDays(1),
+                            onRefresh: () =>
+                                context.read<ScheduleCubit>().load(),
+                            onPickDate: () =>
+                                _pickDate(context, state.selectedDate),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        _ScheduleFilters(
-                          status: state.filters.status,
-                          rangeMode: state.rangeMode,
-                        ),
-                        const SizedBox(height: 12),
-                        _LessonsOverview(
-                          lessons: state.lessons,
-                          rangeMode: state.rangeMode,
-                          actionLessonId: state.actionLessonId,
-                          onLessonTap: (lesson) =>
-                              _openLessonDetail(context, lesson),
-                          onLessonAction: (lesson) =>
-                              _showLessonActions(context, lesson),
-                        ),
-                        const SizedBox(height: 12),
-                        if (state.status == ScheduleStatus.failure)
-                          _InlineError(
-                            message:
-                                state.errorMessage ??
-                                'Raspored nije moguce ucitati.',
-                            onRetry: () => context.read<ScheduleCubit>().load(),
-                          )
-                        else if (state.lessons.isEmpty && !state.isLoading)
-                          _EmptySchedule(
-                            hasActiveFilter: state.filters.status != null,
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        SfCalendar(
-                          controller: _calendarController,
-                          view: switch (state.rangeMode) {
-                            ScheduleRangeMode.day => CalendarView.day,
-                            ScheduleRangeMode.week => CalendarView.week,
-                          },
-                          dataSource: _InstructorLessonsDataSource(
-                            context: context,
-                            lessons: state.lessons,
-                          ),
-                          onTap: (details) {
-                            final appointment =
-                                details.appointments?.firstOrNull;
-                            if (appointment is! Appointment) {
-                              return;
-                            }
-                            final lesson = state.lessons.firstWhere(
-                              (lesson) => lesson.id == appointment.id,
-                            );
-                            _openLessonDetail(context, lesson);
-                          },
-                          onViewChanged: (details) {
-                            final nextDate = _dateFromVisibleRange(
-                              details.visibleDates,
-                              state.rangeMode,
-                            );
-                            if (nextDate == null ||
-                                _sameDate(nextDate, state.filters.from)) {
-                              return;
-                            }
-
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (context.mounted) {
-                                context.read<ScheduleCubit>().selectDate(
-                                  nextDate,
-                                );
-                              }
-                            });
-                          },
-                          firstDayOfWeek: 1,
-                          headerHeight: 0,
-                          viewHeaderHeight: 0,
-                          todayHighlightColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
-                          appointmentBuilder: (context, details) {
-                            final appointment =
-                                details.appointments.firstOrNull;
-                            if (appointment is! Appointment) {
-                              return const SizedBox.shrink();
-                            }
-
-                            final lesson = state.lessons.firstWhere(
-                              (lesson) => lesson.id == appointment.id,
-                            );
-                            return _CalendarLessonTile(lesson: lesson);
-                          },
-                          timeSlotViewSettings: const TimeSlotViewSettings(
-                            startHour: 7,
-                            endHour: 21,
-                            timeInterval: Duration(minutes: 60),
-                            timeIntervalHeight: 88,
-                            timeRulerSize: 64,
-                            timeFormat: 'HH:mm',
-                          ),
-                        ),
-                        if (state.isLoading)
-                          const Positioned.fill(
-                            child: ColoredBox(
-                              color: Color(0x33FFFFFF),
-                              child: Center(child: CircularProgressIndicator()),
+                          const SizedBox(height: 16),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: FilledButton.icon(
+                              onPressed: () =>
+                                  _reserve(context, state.selectedDate),
+                              icon: const Icon(Icons.add),
+                              label: const Text('Rezerviraj termin'),
                             ),
                           ),
-                      ],
+                          const SizedBox(height: 12),
+                          _ScheduleFilters(
+                            status: state.filters.status,
+                            rangeMode: state.rangeMode,
+                          ),
+                          const SizedBox(height: 12),
+                          _LessonsOverview(
+                            lessons: state.lessons,
+                            rangeMode: state.rangeMode,
+                            actionLessonId: state.actionLessonId,
+                            onLessonTap: (lesson) =>
+                                _openLessonDetail(context, lesson),
+                            onLessonAction: (lesson) =>
+                                _showLessonActions(context, lesson),
+                          ),
+                          const SizedBox(height: 12),
+                          if (state.status == ScheduleStatus.failure)
+                            AppInlineError(
+                              message:
+                                  state.errorMessage ??
+                                  'Raspored nije moguce ucitati.',
+                              onRetry: () =>
+                                  context.read<ScheduleCubit>().load(),
+                            )
+                          else if (state.lessons.isEmpty && !state.isLoading)
+                            _EmptySchedule(
+                              hasActiveFilter: state.filters.status != null,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: (MediaQuery.sizeOf(context).height * 0.65).clamp(
+                        360.0,
+                        800.0,
+                      ),
+                      child: Stack(
+                        children: [
+                          SfCalendar(
+                            controller: _calendarController,
+                            view: switch (state.rangeMode) {
+                              ScheduleRangeMode.day => CalendarView.day,
+                              ScheduleRangeMode.week => CalendarView.week,
+                            },
+                            dataSource: _InstructorLessonsDataSource(
+                              context: context,
+                              lessons: state.lessons,
+                            ),
+                            onTap: (details) {
+                              final appointment =
+                                  details.appointments?.firstOrNull;
+                              if (appointment is! Appointment) {
+                                return;
+                              }
+                              final lesson = state.lessons.firstWhere(
+                                (lesson) => lesson.id == appointment.id,
+                              );
+                              _openLessonDetail(context, lesson);
+                            },
+                            onViewChanged: (details) {
+                              final nextDate = _dateFromVisibleRange(
+                                details.visibleDates,
+                                state.rangeMode,
+                              );
+                              if (nextDate == null ||
+                                  _sameDate(nextDate, state.filters.from)) {
+                                return;
+                              }
+
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (context.mounted) {
+                                  context.read<ScheduleCubit>().selectDate(
+                                    nextDate,
+                                  );
+                                }
+                              });
+                            },
+                            firstDayOfWeek: 1,
+                            headerHeight: 0,
+                            viewHeaderHeight: 0,
+                            todayHighlightColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            appointmentBuilder: (context, details) {
+                              final appointment =
+                                  details.appointments.firstOrNull;
+                              if (appointment is! Appointment) {
+                                return const SizedBox.shrink();
+                              }
+
+                              final lesson = state.lessons.firstWhere(
+                                (lesson) => lesson.id == appointment.id,
+                              );
+                              return _CalendarLessonTile(lesson: lesson);
+                            },
+                            timeSlotViewSettings: const TimeSlotViewSettings(
+                              startHour: 7,
+                              endHour: 21,
+                              timeInterval: Duration(minutes: 60),
+                              timeIntervalHeight: 88,
+                              timeRulerSize: 64,
+                              timeFormat: 'HH:mm',
+                            ),
+                          ),
+                          if (state.isLoading)
+                            const Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              child: AppLoadingState(isRefreshing: true),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -494,6 +506,9 @@ class _ScheduleFilters extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
+          isExpanded: true,
+          itemHeight: null,
+          isDense: false,
           initialValue: status,
           decoration: const InputDecoration(
             labelText: 'Status',
@@ -809,10 +824,23 @@ class _LessonActionsSheet extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: !canCancel || isBusy
                       ? null
-                      : () => _runAction(
-                          context,
-                          context.read<ScheduleCubit>().cancelLesson(lesson.id),
-                        ),
+                      : () async {
+                          final confirmed = await showAppConfirmation(
+                            context,
+                            title: 'Otkazati termin?',
+                            message:
+                                'Termin će biti otkazan za kandidata i instruktora.',
+                            confirmLabel: 'Otkaži termin',
+                          );
+                          if (!confirmed || !context.mounted) return;
+
+                          await _runAction(
+                            context,
+                            context.read<ScheduleCubit>().cancelLesson(
+                              lesson.id,
+                            ),
+                          );
+                        },
                   icon: isBusy && canCancel
                       ? const SizedBox(
                           width: 18,
@@ -881,74 +909,14 @@ Color _calendarStatusColor(BuildContext context, String status) {
 
 class _EmptySchedule extends StatelessWidget {
   const _EmptySchedule({required this.hasActiveFilter});
-
   final bool hasActiveFilter;
-
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.event_available_outlined, color: colorScheme.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                hasActiveFilter
-                    ? 'Nema termina za odabrani status.'
-                    : 'Nema termina za odabrani dan.',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _InlineError extends StatelessWidget {
-  const _InlineError({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: colorScheme.errorContainer,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Icon(Icons.error_outline, color: colorScheme.onErrorContainer),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(color: colorScheme.onErrorContainer),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Pokusaj ponovno'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AppEmptyState(
+    title: 'Nema termina',
+    message: hasActiveFilter
+        ? 'Promijeni filtere za prikaz drugih termina.'
+        : 'Za odabrano razdoblje nema termina.',
+  );
 }
 
 String _formatFullDate(DateTime value) {

@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -111,9 +112,7 @@ class LessonDetailView extends StatelessWidget {
           return;
         }
 
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(message)));
+        showAppSnackBar(context, message);
         if (state.errorStatusCode == 401) {
           context.read<AuthCubit>().logout();
         }
@@ -134,16 +133,13 @@ class LessonDetailView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               if (state.status == LessonDetailStatus.failure)
-                _InlineError(
+                AppInlineError(
                   message: state.errorMessage ?? 'Termin nije moguce ucitati.',
                   onRetry: () => context.read<LessonDetailCubit>().load(),
-                )
-              else if (lesson == null || state.isLoading)
-                const Padding(
-                  padding: EdgeInsets.only(top: 96),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else ...[
+                ),
+              if (state.isLoading)
+                AppLoadingState(isRefreshing: lesson != null),
+              if (lesson != null) ...[
                 _LessonSummaryCard(lesson: lesson),
                 const SizedBox(height: 12),
                 _LessonActionsCard(lesson: lesson, state: state),
@@ -154,6 +150,7 @@ class LessonDetailView extends StatelessWidget {
                 if (lesson.status == 'CONFIRMED') ...[
                   const SizedBox(height: 16),
                   _CompleteLessonForm(
+                    key: ValueKey(lesson.id),
                     lesson: lesson,
                     busy: state.actionInProgress,
                   ),
@@ -316,7 +313,18 @@ class _LessonActionsCard extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: !canCancel || state.actionInProgress
               ? null
-              : () => context.read<LessonDetailCubit>().cancelLesson(),
+              : () async {
+                  final confirmed = await showAppConfirmation(
+                    context,
+                    title: 'Otkazati termin?',
+                    message:
+                        'Termin će biti otkazan za kandidata i instruktora.',
+                    confirmLabel: 'Otkaži termin',
+                  );
+                  if (!confirmed || !context.mounted) return;
+
+                  await context.read<LessonDetailCubit>().cancelLesson();
+                },
           icon: state.actionInProgress && canCancel
               ? const SizedBox(
                   width: 18,
@@ -476,43 +484,6 @@ class _DetailAccessError extends StatelessWidget {
   }
 }
 
-class _InlineError extends StatelessWidget {
-  const _InlineError({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: colorScheme.errorContainer,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Icon(Icons.error_outline, color: colorScheme.onErrorContainer),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(color: colorScheme.onErrorContainer),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Pokusaj ponovno'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 Color _statusColor(BuildContext context, String status) {
   final colors = Theme.of(context).colorScheme;
   return switch (status) {
@@ -547,7 +518,11 @@ String _formatTime(DateTime value) {
 }
 
 class _CompleteLessonForm extends StatefulWidget {
-  const _CompleteLessonForm({required this.lesson, required this.busy});
+  const _CompleteLessonForm({
+    required this.lesson,
+    required this.busy,
+    super.key,
+  });
   final InstructorLesson lesson;
   final bool busy;
 

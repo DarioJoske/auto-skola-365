@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -33,18 +34,10 @@ final class PortalShell extends StatelessWidget {
           listener: (context, state) {
             final failure = state.actionFailure ?? state.loadFailure;
             if (failure?.statusCode == 401) {
-              ScaffoldMessenger.of(context)
-                ..clearSnackBars()
-                ..showSnackBar(
-                  const SnackBar(
-                    content: Text('Sesija je istekla. Prijavite se ponovno.'),
-                  ),
-                );
+              showSessionExpired(context);
               context.read<AuthCubit>().logout();
             } else if (state.actionFailure != null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.actionFailure!.message)),
-              );
+              showAppSnackBar(context, state.actionFailure!.message);
             }
           },
           child: _ShellLayout(path: path, child: child),
@@ -65,82 +58,41 @@ final class _ShellLayout extends StatelessWidget {
         : path == '/profile'
         ? 2
         : 0;
-    final wide = MediaQuery.sizeOf(context).width >= 840;
-    void select(int index) => context.go(['/', '/lessons', '/profile'][index]);
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.directions_car_filled_rounded,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 10),
-            const Text('Autoškola 365'),
-          ],
+    return AppNavigationShell(
+      title: 'Autoškola 365',
+      selectedIndex: index,
+      onDestinationSelected: (index) =>
+          context.go(['/', '/lessons', '/profile'][index]),
+      destinations: const [
+        AppDestination(
+          label: 'Pregled',
+          icon: Icons.home_outlined,
+          selectedIcon: Icons.home,
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Osvježi',
-            onPressed: () => context.read<PortalCubit>().load(),
-            icon: const Icon(Icons.refresh),
-          ),
-          IconButton(
-            tooltip: 'Odjavi se',
-            onPressed: () => context.read<AuthCubit>().logout(),
-            icon: const Icon(Icons.logout),
-          ),
-          const SizedBox(width: 12),
-        ],
-      ),
-      body: SafeArea(
-        child: Row(
-          children: [
-            if (wide)
-              NavigationRail(
-                selectedIndex: index,
-                onDestinationSelected: select,
-                labelType: NavigationRailLabelType.all,
-                destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.space_dashboard_outlined),
-                    label: Text('Pregled'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.calendar_month_outlined),
-                    label: Text('Termini'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.person_outline),
-                    label: Text('Moj profil'),
-                  ),
-                ],
-              ),
-            Expanded(child: child),
-          ],
+        AppDestination(
+          label: 'Termini',
+          icon: Icons.calendar_month_outlined,
+          selectedIcon: Icons.calendar_month,
         ),
-      ),
-      bottomNavigationBar: wide
-          ? null
-          : NavigationBar(
-              selectedIndex: index,
-              onDestinationSelected: select,
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.space_dashboard_outlined),
-                  label: 'Pregled',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.calendar_month_outlined),
-                  label: 'Termini',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  label: 'Moj profil',
-                ),
-              ],
-            ),
+        AppDestination(
+          label: 'Moj profil',
+          icon: Icons.person_outline,
+          selectedIcon: Icons.person,
+        ),
+      ],
+      actions: [
+        IconButton(
+          tooltip: 'Osvježi',
+          onPressed: () => context.read<PortalCubit>().load(),
+          icon: const Icon(Icons.refresh),
+        ),
+        IconButton(
+          tooltip: 'Odjavi se',
+          onPressed: () => context.read<AuthCubit>().logout(),
+          icon: const Icon(Icons.logout),
+        ),
+      ],
+      child: child,
     );
   }
 }

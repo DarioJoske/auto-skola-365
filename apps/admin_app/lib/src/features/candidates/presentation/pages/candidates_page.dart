@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import '../../../../app/app_dependencies.dart';
 import '../../../progress/domain/usecases/load_progress.dart';
 import '../../../progress/presentation/bloc/progress_cubit.dart';
@@ -185,70 +186,86 @@ class _CandidatesViewState extends State<CandidatesView> {
           previous.errorEventId != current.errorEventId &&
           current.errorMessage != null,
       listener: (context, state) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+        if (state.errorStatusCode == 401) {
+          showSessionExpired(context);
+        } else {
+          showAppSnackBar(context, state.errorMessage!);
+        }
         if (state.errorStatusCode == 401) {
           context.read<AuthCubit>().logout();
         }
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Kandidati',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+      child: BlocBuilder<CandidatesCubit, CandidatesState>(
+        builder: (context, state) {
+          final isLoading =
+              state.status == CandidatesStatus.loading ||
+              state.status == CandidatesStatus.initial;
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Kandidati',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        FilledButton.icon(
+                          onPressed: () => _openCreateDialog(context),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Novi kandidat'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    _CandidateFiltersBar(
+                      searchController: _searchController,
+                      status: _status,
+                      categoryCode: _categoryCode,
+                      assignedInstructorId: _assignedInstructorId,
+                      instructors: context
+                          .watch<CandidatesCubit>()
+                          .state
+                          .instructors,
+                      onStatusChanged: (value) =>
+                          setState(() => _status = value),
+                      onCategoryChanged: (value) =>
+                          setState(() => _categoryCode = value),
+                      onInstructorChanged: (value) =>
+                          setState(() => _assignedInstructorId = value),
+                      onApply: () => _applyFilters(context),
+                      onClear: () => _clearFilters(context),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
-              FilledButton.icon(
-                onPressed: () => _openCreateDialog(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Novi kandidat'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _CandidateFiltersBar(
-            searchController: _searchController,
-            status: _status,
-            categoryCode: _categoryCode,
-            assignedInstructorId: _assignedInstructorId,
-            instructors: context.watch<CandidatesCubit>().state.instructors,
-            onStatusChanged: (value) => setState(() => _status = value),
-            onCategoryChanged: (value) => setState(() => _categoryCode = value),
-            onInstructorChanged: (value) =>
-                setState(() => _assignedInstructorId = value),
-            onApply: () => _applyFilters(context),
-            onClear: () => _clearFilters(context),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: BlocBuilder<CandidatesCubit, CandidatesState>(
-              builder: (context, state) {
-                if (state.status == CandidatesStatus.loading ||
-                    state.status == CandidatesStatus.initial) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state.status == CandidatesStatus.failure) {
-                  return _EmptyState(
-                    title: 'Kandidate nije moguce ucitati',
-                    message: state.errorMessage ?? 'Pokusaj ponovno.',
-                    action: TextButton.icon(
-                      onPressed: () => context.read<CandidatesCubit>().load(),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Pokusaj ponovno'),
+              if (isLoading)
+                SliverToBoxAdapter(
+                  child: AppLoadingState(
+                    isRefreshing: state.candidates.isNotEmpty,
+                  ),
+                ),
+              if (state.status == CandidatesStatus.failure)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: AppInlineError(
+                      message: state.errorMessage ?? 'Pokušaj ponovno.',
+                      onRetry: () => context.read<CandidatesCubit>().load(),
                     ),
-                  );
-                }
-
-                if (state.candidates.isEmpty) {
-                  return _EmptyState(
+                  ),
+                ),
+              if (state.candidates.isEmpty &&
+                  !isLoading &&
+                  state.status != CandidatesStatus.failure)
+                SliverToBoxAdapter(
+                  child: AppEmptyState(
                     title: state.filters.isActive
                         ? 'Nema rezultata'
                         : 'Nema kandidata',
@@ -268,24 +285,21 @@ class _CandidatesViewState extends State<CandidatesView> {
                             : 'Dodaj kandidata',
                       ),
                     ),
-                  );
-                }
-
-                return ListView.separated(
-                  itemCount: state.candidates.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    return _CandidateRow(
-                      candidate: state.candidates[index],
-                      onEdit: () =>
-                          _openEditDialog(context, state.candidates[index]),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+                  ),
+                ),
+              SliverList.separated(
+                key: const ValueKey('results'),
+                itemCount: state.candidates.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) => _CandidateRow(
+                  candidate: state.candidates[index],
+                  onEdit: () =>
+                      _openEditDialog(context, state.candidates[index]),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -337,6 +351,9 @@ class _CandidateFiltersBar extends StatelessWidget {
         SizedBox(
           width: 220,
           child: DropdownButtonFormField<String>(
+            isExpanded: true,
+            itemHeight: null,
+            isDense: false,
             initialValue: status,
             decoration: const InputDecoration(labelText: 'Status'),
             items: [
@@ -354,6 +371,9 @@ class _CandidateFiltersBar extends StatelessWidget {
         SizedBox(
           width: 160,
           child: DropdownButtonFormField<String>(
+            isExpanded: true,
+            itemHeight: null,
+            isDense: false,
             initialValue: categoryCode,
             decoration: const InputDecoration(labelText: 'Kategorija'),
             items: [
@@ -368,6 +388,9 @@ class _CandidateFiltersBar extends StatelessWidget {
         SizedBox(
           width: 240,
           child: DropdownButtonFormField<String>(
+            isExpanded: true,
+            itemHeight: null,
+            isDense: false,
             initialValue: _safeInstructorFilterValue(),
             decoration: const InputDecoration(labelText: 'Instruktor'),
             items: [
@@ -661,6 +684,9 @@ class _CandidateDialogState extends State<CandidateDialog> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      itemHeight: null,
+                      isDense: false,
                       initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: _candidateStatuses
@@ -681,6 +707,9 @@ class _CandidateDialogState extends State<CandidateDialog> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      itemHeight: null,
+                      isDense: false,
                       initialValue: _categoryCode,
                       decoration: const InputDecoration(
                         labelText: 'Kategorija',
@@ -704,6 +733,9 @@ class _CandidateDialogState extends State<CandidateDialog> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      itemHeight: null,
+                      isDense: false,
                       initialValue: _safeInstructorValue(state.instructors),
                       decoration: const InputDecoration(
                         labelText: 'Dodijeljeni instruktor',
@@ -823,47 +855,5 @@ class _CandidateDialogState extends State<CandidateDialog> {
       return 'Obavezno polje.';
     }
     return null;
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.title,
-    required this.message,
-    required this.action,
-  });
-
-  final String title;
-  final String message;
-  final Widget action;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            action,
-          ],
-        ),
-      ),
-    );
   }
 }

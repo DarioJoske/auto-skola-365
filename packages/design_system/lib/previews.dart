@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 import 'design_system.dart';
+import 'src/preview/navigation_example.dart';
+export 'src/preview/navigation_example.dart';
 import 'src/preview/admin_example.dart';
 import 'src/preview/candidate_example.dart';
 import 'src/preview/component_catalog.dart';
@@ -52,3 +54,35 @@ Widget candidatePreview() => const CandidateDesignSystemExample();
   wrapper: designSystemPreviewWrapper,
 )
 Widget componentsPreview() => const ComponentCatalog();
+
+Widget navigationPreviewWrapper(Widget child) => MaterialApp(
+  debugShowCheckedModeBanner: false,
+  theme: DrivingSchoolTheme.light(),
+  home: child,
+);
+
+@Preview(
+  name: 'Navigacija · admin sidebar',
+  size: Size(1440, 900),
+  wrapper: navigationPreviewWrapper,
+)
+@Preview(
+  name: 'Navigacija · admin rail',
+  size: Size(1024, 900),
+  wrapper: navigationPreviewWrapper,
+)
+Widget adminNavigationPreview() =>
+    const NavigationExample(mode: AppNavigationMode.admin);
+
+@Preview(
+  name: 'Navigacija · mobilna 390',
+  size: Size(390, 844),
+  wrapper: navigationPreviewWrapper,
+)
+@Preview(
+  name: 'Navigacija · mobilna 360 · veliki tekst',
+  size: Size(360, 800),
+  textScaleFactor: 2,
+  wrapper: navigationPreviewWrapper,
+)
+Widget mobileNavigationPreview() => const NavigationExample();
