@@ -1,4 +1,4 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bloc/bloc.dart';
 
 import '../../../../core/api/result_extensions.dart';
 import '../../domain/usecases/bootstrap_auth_session.dart';
@@ -25,7 +25,7 @@ class AuthCubit extends Cubit<AuthState> {
 
     final result = await _bootstrapAuthSession();
     result.resolve(
-      onFailure: (_) => emit(const AuthState.unauthenticated()),
+      onFailure: (message) => emit(AuthState.failure(message)),
       onSuccess: (session) {
         if (session == null) {
           emit(const AuthState.unauthenticated());

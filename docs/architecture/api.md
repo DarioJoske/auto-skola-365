@@ -3,6 +3,32 @@
 Status: Draft  
 Created: 2026-09-04
 
+## Ugovor grešaka i izolacija škole
+
+Zaštićene rute vraćaju JSON greške s `status`, `code`, `message` i `path`
+(uz `timestamp` i `error`). Sigurnosni `401` za nedostajući, neispravan ili
+istekao JWT koristi `UNAUTHORIZED`; sigurnosni i domenski `403` koristi
+`FORBIDDEN`. Sve tri aplikacije prenose status, kod, poruku i izvornu API
+putanju kroz `ApiException` u `Failure`. Putanja služi dijagnostici; sučelje
+prikazuje poruku, a za 401 jasno objašnjava istek sesije.
+
+Ovlasti proizlaze iz aktualnog aktivnog članstva. Stvaranje, potvrđivanje i
+otkazivanje termina provjeravaju pristup školi prije traženja pojedinog zapisa.
+Za instruktora se dodatno provjerava vlasništvo termina ili aktualna dodjela
+kandidata. Promjena dodjele ukida pravo čitanja napretka starom instruktoru;
+pravo završavanja stare vožnje i dalje pripada aktivnom instruktoru zapisanom
+na tom terminu, nakon njegova završnog vremena.
+
+Stvaranje, rezerviranje, pomicanje i ponovno potvrđivanje termina koriste
+transakcijsko zaključavanje kandidata pa instruktora prije provjere preklapanja.
+Zaključavaju se postojeći redci resursa, i kad novi termin još ne postoji.
+Za istog kandidata ili instruktora konkurentni zahtjevi zato ne mogu oba
+zauzeti isti interval: jedan uspijeva, drugi dobiva strukturirani `409 CONFLICT`.
+Susjedni intervali ostaju dopušteni. Završavanje zadržava zasebnu zaštitu
+zaključavanjem retka termina; ponovljeni pokušaj ne dodaje novi odrađeni sat.
+
+Opseg i ponovljive provjere: [regresije izolacije i pravila](../development/isolation-regressions.md).
+
 ## Health
 
 Swagger UI:

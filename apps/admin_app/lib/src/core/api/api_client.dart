@@ -69,6 +69,7 @@ class ApiClient {
           _messageForStatus(statusCode),
       statusCode: statusCode,
       code: _codeFromResponse(error.response?.data),
+      path: _pathFromResponse(error.response?.data),
     );
   }
 
@@ -91,6 +92,16 @@ class ApiClient {
       }
     }
 
+    return null;
+  }
+
+  String? _pathFromResponse(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final path = data['path'];
+      if (path is String && path.trim().isNotEmpty) {
+        return path;
+      }
+    }
     return null;
   }
 

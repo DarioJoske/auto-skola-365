@@ -81,6 +81,7 @@ public class LessonService {
 
     @Transactional
     public LessonResponse create(UUID schoolId, LessonRequest request, AuthenticatedUser authenticatedUser) {
+        requireSchoolLessonAccess(schoolId, authenticatedUser);
         LessonInputs inputs = getInputs(schoolId, request);
         requireManageLessonsOrAssignedInstructor(schoolId, inputs.instructor(), authenticatedUser);
 
@@ -178,7 +179,7 @@ public class LessonService {
         AuthenticatedUser authenticatedUser
     ) {
         requireCandidateReservationAccess(schoolId, authenticatedUser);
-        Candidate candidate = candidateRepository.findBySchoolIdAndUserId(schoolId, authenticatedUser.userId())
+        Candidate candidate = candidateRepository.findForUpdateByUser(schoolId, authenticatedUser.userId())
             .orElseThrow(() -> new LessonAccessDeniedException("User cannot reserve lessons for this candidate."));
         InstructorProfile instructor = candidate.getAssignedInstructor();
         if (instructor == null) {
@@ -244,6 +245,7 @@ public class LessonService {
 
     @Transactional
     public LessonResponse confirm(UUID schoolId, UUID lessonId, AuthenticatedUser authenticatedUser) {
+        requireSchoolLessonAccess(schoolId, authenticatedUser);
         Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
             .orElseThrow(() -> new LessonNotFoundException("Lesson does not exist."));
         requireManageLessonsOrAssignedInstructor(schoolId, lesson.getInstructor(), authenticatedUser);
@@ -255,6 +257,7 @@ public class LessonService {
 
     @Transactional
     public LessonResponse cancel(UUID schoolId, UUID lessonId, AuthenticatedUser authenticatedUser) {
+        requireSchoolLessonAccess(schoolId, authenticatedUser);
         Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
             .orElseThrow(() -> new LessonNotFoundException("Lesson does not exist."));
         requireManageLessonsOrAssignedInstructor(schoolId, lesson.getInstructor(), authenticatedUser);
@@ -279,7 +282,7 @@ public class LessonService {
     }
 
     private LessonInputs getInputs(UUID schoolId, LessonRequest request) {
-        Candidate candidate = candidateRepository.findByIdAndSchoolId(request.candidateId(), schoolId)
+        Candidate candidate = candidateRepository.findForUpdate(request.candidateId(), schoolId)
             .orElseThrow(() -> new CandidateNotFoundException("Candidate does not exist."));
         InstructorProfile instructor = instructorRepository.findByIdAndSchoolMembershipSchoolId(request.instructorId(), schoolId)
             .orElseThrow(() -> new InstructorNotFoundException("Instructor does not exist."));
@@ -360,6 +363,12 @@ public class LessonService {
         UUID excludedLessonId
     ) {
         UUID schoolId = candidate.getSchool().getId();
+        // Lock stable rows even when the slot has no lessons yet. Every scheduling
+        // path uses candidate -> instructor order and holds both until commit.
+        candidateRepository.findForUpdate(candidate.getId(), schoolId)
+            .orElseThrow(() -> new CandidateNotFoundException("Candidate does not exist."));
+        instructorRepository.findForUpdate(instructor.getId(), schoolId)
+            .orElseThrow(() -> new InstructorNotFoundException("Instructor does not exist."));
         if (lessonRepository.existsInstructorOverlap(schoolId, instructor.getId(), startAt, endAt, excludedLessonId)) {
             throw new LessonConflictException("Instructor already has a lesson in this time slot.");
         }
@@ -371,6 +380,13 @@ public class LessonService {
     private void requireManageLessons(UUID schoolId, AuthenticatedUser authenticatedUser) {
         if (!authorizationService.hasSchoolPermission(authenticatedUser, schoolId, MANAGE_LESSONS)) {
             throw new LessonAccessDeniedException("User cannot manage lessons for this school.");
+        }
+    }
+
+    private void requireSchoolLessonAccess(UUID schoolId, AuthenticatedUser authenticatedUser) {
+        if (!authorizationService.hasSchoolPermission(authenticatedUser, schoolId, MANAGE_LESSONS)
+            && !authorizationService.hasSchoolPermission(authenticatedUser, schoolId, VIEW_ASSIGNED_LESSONS)) {
+            throw new LessonAccessDeniedException("User cannot access lessons for this school.");
         }
     }
 

@@ -1,3 +1,4 @@
+import 'package:auto_skola_365_candidate_app/src/core/api/failure.dart';
 import 'package:auto_skola_365_candidate_app/src/app/app_dependencies.dart';
 import 'package:auto_skola_365_candidate_app/src/app/candidate_app.dart';
 import 'package:auto_skola_365_candidate_app/src/core/api/result.dart';
@@ -18,6 +19,7 @@ import 'portal_test.dart' show PortalFake;
 class SessionRepository extends Fake implements AuthRepository {
   SessionRepository(this.session);
   final AuthSession session;
+  int logoutCalls = 0;
   @override
   FutureEither<AuthSession?> bootstrapSession() async => const Right(null);
   @override
@@ -26,10 +28,91 @@ class SessionRepository extends Fake implements AuthRepository {
     required String password,
   }) async => Right(session);
   @override
-  Future<void> logout() async {}
+  Future<void> logout() async {
+    logoutCalls++;
+  }
 }
 
 void main() {
+  testWidgets(
+    'portal shows load failure, retry, mutation conflict and session expiry',
+    (tester) async {
+      final user = (await Remote().login(
+        email: 'ana@example.com',
+        password: 'test',
+      )).user.toEntity();
+      final repository = SessionRepository(
+        AuthSession(
+          accessToken: 'token',
+          user: user,
+          candidateMembership: user.candidateMembership!,
+        ),
+      );
+      final auth = AuthCubit(
+        bootstrapAuthSession: BootstrapAuthSession(repository),
+        login: Login(repository),
+        logout: Logout(repository),
+      );
+      final portal = PortalFake();
+      portal.onLoad = () async => const Left(
+        Failure(
+          'Usluga privremeno nije dostupna.',
+          statusCode: 503,
+          code: 'UNAVAILABLE',
+        ),
+      );
+      getIt.registerSingleton<AuthCubit>(auth);
+      getIt.registerSingleton<LoadPortal>(LoadPortal(portal));
+      getIt.registerSingleton<RequestLesson>(RequestLesson(portal));
+      addTearDown(() async {
+        await getIt.reset();
+        await auth.close();
+      });
+      await tester.pumpWidget(const CandidateApp());
+      await tester.pumpAndSettle();
+      await auth.login(email: 'ana@example.com', password: 'test');
+      await tester.pumpAndSettle();
+      expect(find.text('Usluga privremeno nije dostupna.'), findsOneWidget);
+      portal.onLoad = null;
+      await tester.tap(find.text('Pokušaj ponovno'));
+      await tester.pumpAndSettle();
+      expect(find.text('25/35 sati odrađeno'), findsOneWidget);
+      portal.onRequest = () async => const Left(
+        Failure(
+          'Termin je u međuvremenu zauzet.',
+          statusCode: 409,
+          code: 'CONFLICT',
+        ),
+      );
+      await tester.tap(find.text('Zatraži termin'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pošalji zahtjev'));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byType(SnackBar),
+          matching: find.text('Termin je u međuvremenu zauzet.'),
+        ),
+        findsOneWidget,
+      );
+      // The same dialog must also handle expiry during a retried mutation.
+      portal.onRequest = () async => const Left(
+        Failure('Unauthorized', statusCode: 401, code: 'UNAUTHORIZED'),
+      );
+      await tester.tap(find.text('Pošalji zahtjev'));
+      await tester.pumpAndSettle();
+      expect(find.text('Prijavi se'), findsOneWidget);
+      expect(find.text('25/35 sati odrađeno'), findsNothing);
+      expect(
+        find.text('Sesija je istekla. Prijavite se ponovno.'),
+        findsWidgets,
+      );
+      expect(repository.logoutCalls, greaterThanOrEqualTo(1));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets(
     'tabs switch immediately without overlapping pages',
     (tester) async {

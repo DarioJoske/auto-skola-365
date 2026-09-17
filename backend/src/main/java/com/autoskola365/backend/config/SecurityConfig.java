@@ -1,6 +1,8 @@
 package com.autoskola365.backend.config;
 
 import com.autoskola365.backend.auth.JwtAuthenticationFilter;
+import com.autoskola365.backend.common.ApiErrorResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,12 +21,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.util.List;
+import java.time.Instant;
+import org.springframework.http.MediaType;
 
 @Configuration
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter,
+                                           ObjectMapper objectMapper) throws Exception {
         return http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> {})
@@ -37,7 +42,20 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .exceptionHandling(exception -> exception
-                .authenticationEntryPoint((request, response, authException) -> response.setStatus(401))
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(401);
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    objectMapper.writeValue(response.getOutputStream(), new ApiErrorResponse(
+                        Instant.now(), 401, "Unauthorized", "UNAUTHORIZED",
+                        "Sesija je istekla. Prijavite se ponovno.", request.getRequestURI()));
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(403);
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    objectMapper.writeValue(response.getOutputStream(), new ApiErrorResponse(
+                        Instant.now(), 403, "Forbidden", "FORBIDDEN",
+                        "Nemate dozvolu za ovu radnju.", request.getRequestURI()));
+                })
             )
             .httpBasic(httpBasic -> httpBasic.disable())
             .formLogin(formLogin -> formLogin.disable())

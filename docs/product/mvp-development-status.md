@@ -40,6 +40,22 @@ ugovori endpointa u [API dokumentaciji](../architecture/api.md).
   svih 12 Flyway migracija uspješno primijenjeno na praznu bazu, Hibernate
   validacija sheme i podizanje aplikacije uspješni. Razvojna baza nije mijenjana.
 
+## Dopuna 2026-09-17 — zadatak #4 (lokalne izmjene)
+
+- Spriječene su konkurentne rezervacije istog kandidata ili instruktora,
+  uključujući ponovno potvrđivanje otkazanog i pomicanje postojećeg termina.
+- Školske ovlasti provjeravaju se prije traženja termina za mutacije;
+  sigurnosni 401/403 vraćaju strukturirani JSON.
+- Sve tri aplikacije čuvaju status, kod, poruku i putanju u `Failure`.
+  Admin vidljivo prikazuje grešku obnove sesije, a kandidatska poruka isteka
+  sesije više ne čeka iza prethodnog konfliktnog snackbara.
+- Prolaze 25 backend testova na H2, 11 odabranih PostgreSQL regresija i backend
+  paket. Svih 12 postojećih migracija primijenjeno je na prazni PostgreSQL 16.
+- Prolazi 157 Flutter testova (admin 56, instruktor 58, kandidat 43), uz
+  formatiranje i tri analize bez nalaza. Design system nije mijenjan ni ponovno
+  testiran ovim zadatkom; gornji povijesni ukupni brojevi odnose se na raniji PR.
+- [Opseg, ponovljive naredbe i ograničenja](../development/isolation-regressions.md).
+
 ## Preostali rad
 
 1. Postupno implementirati prošireni Figma design system i ekrane kroz
