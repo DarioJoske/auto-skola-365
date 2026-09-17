@@ -8,7 +8,9 @@ import 'package:auto_skola_365_candidate_app/src/features/portal/domain/reposito
 import 'package:auto_skola_365_candidate_app/src/features/portal/domain/usecases/load_portal.dart';
 import 'package:auto_skola_365_candidate_app/src/features/portal/domain/usecases/request_lesson.dart';
 import 'package:auto_skola_365_candidate_app/src/features/portal/presentation/cubit/portal_cubit.dart';
-import 'package:auto_skola_365_candidate_app/src/features/portal/presentation/pages/portal_pages.dart';
+import 'package:auto_skola_365_candidate_app/src/features/portal/presentation/pages/home_page.dart';
+import 'package:auto_skola_365_candidate_app/src/features/portal/presentation/pages/lessons_page.dart';
+import 'package:auto_skola_365_candidate_app/src/features/portal/presentation/cubit/portal_state.dart';
 import 'package:auto_skola_365_candidate_app/src/features/portal/presentation/widgets/request_lesson_dialog.dart';
 import 'package:auto_skola_design_system/design_system.dart';
 import 'package:bloc_test/bloc_test.dart';

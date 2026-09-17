@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:auto_skola_design_system/design_system.dart';
 import '../../domain/entities/candidate_portal.dart';
-
-String lessonDate(BuildContext context, DateTime date) =>
-    MaterialLocalizations.of(context).formatMediumDate(date);
-String lessonTime(BuildContext context, DateTime date) =>
-    MaterialLocalizations.of(context).formatTimeOfDay(
-      TimeOfDay.fromDateTime(date),
-      alwaysUse24HourFormat: true,
-    );
+import '../utils/lesson_formatters.dart';
 
 final class LessonCard extends StatelessWidget {
   const LessonCard({required this.lesson, super.key});

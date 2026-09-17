@@ -4,7 +4,9 @@ import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/auth/presentation/cubit/auth_state.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/portal/presentation/pages/portal_shell.dart';
-import '../../features/portal/presentation/pages/portal_pages.dart';
+import '../../features/portal/presentation/pages/home_page.dart';
+import '../../features/portal/presentation/pages/lessons_page.dart';
+import '../../features/portal/presentation/pages/profile_page.dart';
 
 GoRouter createAppRouter({
   required AuthCubit authCubit,

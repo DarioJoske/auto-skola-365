@@ -195,6 +195,10 @@ Before adding a new dependency:
 ## Flutter UI and Dart style
 
 - Prefer composition, small focused widgets and existing design-system components.
+- Put every page widget and every public widget in its own descriptively named Dart file. Do not group multiple pages or public widgets in one file. A StatefulWidget and its private State class belong in the same file.
+- Keep pages readable by extracting substantial, cohesive sections into private widget classes in the same page file. For example, a body with distinct header, summary and content sections should compose private widgets for those sections rather than contain one deeply nested build method.
+- Keep page-specific sections private and local to the page file; extract a public widget into its own file when it needs to be used outside that file. Prefer widget classes over build-helper methods for these sections.
+- Apply section extraction according to readability and responsibility, not an arbitrary line-count limit. Short, already readable page or widget files do not need extra private widgets solely to satisfy this convention; the separate-file rule for pages and public widgets still applies.
 - Use descriptive names, such as `isLoading`, `canSubmit` and `hasReachedEnd`.
 - Use const constructors and const expressions where applicable. Let the configured Dart formatter and analyzer enforce formatting and style.
 - Follow the project's Freezed/JSON generation conventions; keep transport serialization concerns in the appropriate data layer.
