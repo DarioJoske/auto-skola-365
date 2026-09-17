@@ -64,6 +64,16 @@ public class LessonController {
         return lessonService.getInstructorLesson(schoolId, lessonId, authenticatedUser);
     }
 
+    @PostMapping("/instructor/reservations")
+    @ResponseStatus(HttpStatus.CREATED)
+    public LessonResponse createInstructorReservation(
+        @PathVariable UUID schoolId,
+        @Valid @RequestBody InstructorLessonReservationRequest request,
+        @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        return lessonService.createInstructorReservation(schoolId, request, authenticatedUser);
+    }
+
     @PostMapping("/candidate/reservations")
     @ResponseStatus(HttpStatus.CREATED)
     public LessonResponse createCandidateReservation(
@@ -110,6 +120,16 @@ public class LessonController {
         @AuthenticationPrincipal AuthenticatedUser authenticatedUser
     ) {
         return lessonService.confirm(schoolId, lessonId, authenticatedUser);
+    }
+
+    @PostMapping("/{lessonId}/complete")
+    public LessonResponse complete(
+        @PathVariable UUID schoolId,
+        @PathVariable UUID lessonId,
+        @Valid @RequestBody CompleteLessonRequest request,
+        @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        return lessonService.complete(schoolId, lessonId, request, authenticatedUser);
     }
 
     @PostMapping("/{lessonId}/cancel")

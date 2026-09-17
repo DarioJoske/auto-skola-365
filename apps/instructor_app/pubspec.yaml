@@ -9,6 +9,8 @@ environment:
 resolution: workspace
 
 dependencies:
+  auto_skola_design_system:
+    path: ../../packages/design_system
   bloc: ^8.1.4
   dartz: ^0.10.1
   dio: ^5.7.0
@@ -18,11 +20,13 @@ dependencies:
   get_it: ^8.0.3
   go_router: ^14.6.2
   shared_preferences: ^2.3.2
+  syncfusion_flutter_calendar: 32.1.22
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  bloc_test: ^9.1.7
 
 flutter:
   uses-material-design: true

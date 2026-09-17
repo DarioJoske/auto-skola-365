@@ -1,0 +1,10 @@
+CREATE TABLE lesson_progress (
+    id UUID PRIMARY KEY,
+    lesson_id UUID NOT NULL REFERENCES lessons(id),
+    skill VARCHAR(255) NOT NULL,
+    status VARCHAR(255) NOT NULL,
+    recorded_at TIMESTAMPTZ NOT NULL,
+    CONSTRAINT uq_lesson_progress_skill UNIQUE (lesson_id, skill),
+    CONSTRAINT ck_progress_skill CHECK (skill IN ('VEHICLE_CONTROLS','START_STOP','STEERING_LANE','INTERSECTIONS','ROUNDABOUTS','PARKING','REVERSING','CITY_TRAFFIC','OPEN_ROAD','EXAM_READINESS')),
+    CONSTRAINT ck_progress_status CHECK (status IN ('NOT_STARTED','IN_PROGRESS','NEEDS_PRACTICE','SATISFACTORY','MASTERED'))
+);

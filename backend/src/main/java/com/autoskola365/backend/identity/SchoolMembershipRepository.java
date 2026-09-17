@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.EntityGraph;
 
 public interface SchoolMembershipRepository extends JpaRepository<SchoolMembership, UUID> {
 
+    @EntityGraph(attributePaths = {"school", "role"})
+    List<SchoolMembership> findByUserId(UUID userId);
+
     @EntityGraph(attributePaths = {"school", "role", "role.permissions"})
     List<SchoolMembership> findByUserIdAndStatus(UUID userId, String status);
 

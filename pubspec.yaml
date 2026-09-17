@@ -7,6 +7,48 @@ environment:
 workspace:
   - apps/admin_app
   - apps/instructor_app
+  - apps/candidate_app
+  - packages/design_system
 
 dev_dependencies:
-  melos: ^6.3.3
+  melos: 8.6.0
+
+melos:
+  scripts:
+    format:
+      description: Format Flutter source and tests.
+      run: melos exec --flutter --concurrency=1 --fail-fast -- dart format lib test
+    format:check:
+      description: Check formatting without changing files.
+      run: melos exec --flutter --concurrency=1 --fail-fast -- dart format --output=none --set-exit-if-changed lib test
+    analyze:
+      description: Analyze each Flutter package.
+      run: melos exec --flutter --concurrency=1 --fail-fast -- flutter analyze --no-pub
+    test:
+      description: Run tests in all Flutter packages with tests.
+      run: melos exec --flutter --dir-exists=test --concurrency=1 --fail-fast -- flutter test --no-pub
+    check:
+      description: Check formatting, analysis and tests, stopping on failure.
+      steps:
+        - melos run format:check
+        - melos run analyze
+        - melos run test
+    check:design-system:
+      description: Check the design system and all its dependent apps.
+      run: >-
+        melos exec --scope=auto_skola_design_system --include-dependents
+        --concurrency=1 --fail-fast --
+        "dart format --output=none --set-exit-if-changed lib test && flutter analyze --no-pub && flutter test --no-pub"
+    build:web:
+      description: Build the admin web application.
+      run: melos exec --scope=auto_skola_365_admin_app --concurrency=1 --fail-fast -- flutter build web --no-pub
+    dev:candidate:
+      description: Run the candidate app on an explicitly selected mobile device.
+      run: >-
+        cd apps/candidate_app && flutter run
+        -d "${CANDIDATE_DEVICE_ID:?Set CANDIDATE_DEVICE_ID to an Android or iOS device ID from flutter devices}"
+        --dart-define=API_BASE_URL="${API_BASE_URL:-http://localhost:8080}"
+      stdio: inherit
+    test:backend:
+      description: Run the Spring Boot backend tests.
+      run: cd backend && mvn test

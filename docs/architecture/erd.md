@@ -60,12 +60,7 @@ erDiagram
     lessons }o--|| instructor_profiles : with_instructor
     lessons }o--o| vehicles : uses_vehicle
     lessons ||--o{ lesson_status_history : changes
-    lessons ||--o{ lesson_progress_notes : produces
 
-    candidate_progress_templates ||--o{ candidate_progress_items : contains
-    driving_categories ||--o{ candidate_progress_templates : has
-    candidates ||--o{ candidate_progress_items : tracks
-    candidate_progress_items ||--o{ lesson_progress_notes : referenced_by
 
     candidates ||--o{ exams : has
     candidates ||--o{ documents : has
@@ -160,6 +155,7 @@ erDiagram
         uuid school_id FK
         uuid driving_category_id FK
         uuid assigned_instructor_id FK
+        int required_driving_hours
         text first_name
         text last_name
         text email
@@ -207,33 +203,6 @@ erDiagram
         text new_status
         uuid changed_by_user_id FK
         text reason
-        timestamptz created_at
-    }
-
-    candidate_progress_templates {
-        uuid id PK
-        uuid driving_category_id FK
-        text name
-        boolean active
-    }
-
-    candidate_progress_items {
-        uuid id PK
-        uuid candidate_id FK
-        uuid template_id FK
-        text area_key
-        text area_name
-        text status
-        timestamptz updated_at
-    }
-
-    lesson_progress_notes {
-        uuid id PK
-        uuid lesson_id FK
-        uuid candidate_progress_item_id FK
-        uuid instructor_profile_id FK
-        text note
-        text status_after_lesson
         timestamptz created_at
     }
 
@@ -289,7 +258,13 @@ erDiagram
   parent entity.
 - Scheduling conflict checks belong in the backend service layer and should be
   backed by database indexes where possible.
-- Candidate progress templates should be configurable per driving category.
+- MVP progress is a count of completed DRIVING lessons for the candidate's current
+  category, compared with `candidates.required_driving_hours`. A 60-minute MVP
+  slot contributes one instructional hour. Standard B defaults to 35; other
+  categories need an explicit target. Counts are not capped at the target.
+- Skill templates, skill ratings and assessment history are outside MVP.
+  The existing `lesson_progress` table is retained for historical data; the
+  application no longer exposes assessment reads or writes.
 - Exams, documents and payments are included as model-aware entities, but full
   UI implementation is outside the first admin-core MVP.
 - Audit logs should be append-only and should not depend on UI behavior.
@@ -300,6 +275,5 @@ erDiagram
    `school_memberships`.
 2. `driving_categories`, `instructor_profiles`, `candidates`.
 3. `vehicles`, `lessons`, `lesson_status_history`.
-4. `candidate_progress_templates`, `candidate_progress_items`,
-   `lesson_progress_notes`.
+4. Lesson completion, `candidates.required_driving_hours` and derived completed-hours summary.
 5. Model-aware placeholders for `exams`, `documents`, `payments`, `audit_logs`.

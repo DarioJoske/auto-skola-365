@@ -285,6 +285,37 @@ Request:
 
 Response: `200 OK` with the updated candidate object.
 
+Candidate create/update also accepts optional `requiredDrivingHours` (a positive
+integer) and `loginPassword` (8–72 characters). Omitting the password leaves the
+existing login unchanged; the admin UI sends `null` for an empty password field.
+Activation requires a contact email that is not already used by another account.
+An existing account is never claimed by matching its email. Password changes are
+limited to linked accounts with active candidate access to this school and no
+other school or role membership.
+
+Candidate responses also include `requiredDrivingHours`, `hasLoginAccess` and
+nullable `loginEmail`. Changing the contact email does not change the login email.
+The default hour target is 35 for B category and unset for other categories.
+On update, omitting the target preserves it while the category stays unchanged;
+changing the category without a target restores the new category's default.
+
+## Candidate portal
+
+```http
+GET /api/schools/{schoolId}/candidate-portal
+Authorization: Bearer <accessToken>
+```
+
+Requires active school membership with `lessons.reserve_own` and a candidate
+linked to the authenticated user. Returns `candidateId`, `firstName`, `lastName`,
+`schoolName`, `categoryCode`, nullable `instructorName`, `canRequestLesson`,
+`completedDrivingHours`, nullable `requiredDrivingHours`, and `lessons`.
+
+Each lesson contains `id`, `status`, `startAt`, `endAt`, `instructorName` and
+nullable `branchName`, ordered by start time descending. The response excludes
+internal candidate notes, lesson notes and completion notes. A missing linked
+candidate or access to another school returns `403`.
+
 ## Instructors
 
 Instructors are school-scoped. The authenticated user must have an active
@@ -484,6 +515,21 @@ Instructor-facing detail. Returns `403 Forbidden` when the lesson belongs to a
 different instructor.
 
 ```http
+POST /api/schools/{schoolId}/lessons/instructor/reservations
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"candidateId":"uuid","startAt":"2026-10-01T08:00:00Z","notes":"Vožnja"}
+```
+
+Resolves the active instructor from the authenticated user and creates a
+`CONFIRMED` `DRIVING` lesson lasting 60 minutes. The start must be in the future;
+the optional note is limited to 2000 characters. The candidate must currently be
+assigned to that instructor. All create/update paths also verify the current
+assignment and candidate/instructor conflicts. A changed assignment or occupied
+slot returns `409`; invalid input returns `400`; denied access returns `403`.
+
+```http
 POST /api/schools/{schoolId}/lessons/candidate/reservations
 Authorization: Bearer <accessToken>
 Content-Type: application/json
@@ -536,3 +582,55 @@ Authorization: Bearer <accessToken>
 ```
 
 Response: `200 OK` with status `CANCELLED`.
+
+### Complete an instructor lesson
+
+```http
+POST /api/schools/{schoolId}/lessons/{lessonId}/complete
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"note": "Vježbali smo parkiranje."}
+```
+
+Only the active instructor assigned to the lesson, with active school access,
+can complete it. The lesson must be `CONFIRMED` and its scheduled end must have
+passed (server time). `note` is optional, trimmed, and limited to 2000 characters.
+
+Response: `200 OK` with the lesson object, status `COMPLETED`, server-generated
+`completedAt`, and nullable `completionNote`. Existing `notes` are preserved.
+These two additional fields are also returned by lesson list/detail endpoints.
+
+Invalid status, early completion, or repeated completion returns `409 Conflict`;
+unauthorized school/instructor access returns `403 Forbidden`; invalid note
+length returns `400 Bad Request`. Errors use the standard structured JSON format.
+Completed lessons cannot be edited, confirmed, or cancelled. Mutations lock the
+lesson row for the transaction so concurrent actions cannot overwrite completion.
+
+Database migration: `V10__lesson_completion.sql` adds the completion columns.
+
+### Candidate driving hours
+
+```http
+GET /api/schools/{schoolId}/candidates/{candidateId}/progress
+GET /api/schools/{schoolId}/lessons/{lessonId}/progress
+Authorization: Bearer <accessToken>
+```
+
+Both return `candidateId`, `candidateName`, `categoryCode`,
+`completedDrivingHours` and nullable `requiredDrivingHours`. Completed hours count
+only `COMPLETED` `DRIVING` lessons in the candidate's current category and school.
+One completed 60-minute calendar slot represents one instructional hour (45
+minutes of teaching plus preparation); totals may exceed the target. The hour
+target is not an exam-readiness assessment.
+
+School users with `candidates.manage` may read their school's totals. Instructors
+need `lessons.view_assigned`, an active instructor profile and the current
+candidate assignment. The lesson endpoint additionally checks that the lesson
+belongs to the instructor. Errors use the standard structured JSON format.
+
+Progress is read-only. The earlier skill assessment request/response contract is
+replaced by these totals; `POST /lessons/{lessonId}/progress` returns `405`.
+Migration `V11__lesson_progress.sql` and its historical data remain unchanged.
+`V12__candidate_driving_hours.sql` adds the optional positive target, initializes
+existing B-category candidates to 35, and indexes the completed-hour query.

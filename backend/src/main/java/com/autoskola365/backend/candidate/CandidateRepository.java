@@ -23,6 +23,14 @@ public interface CandidateRepository extends JpaRepository<Candidate, UUID> {
         "assignedInstructor.schoolMembership",
         "assignedInstructor.schoolMembership.user"
     })
+    List<Candidate> findBySchoolIdAndAssignedInstructorIdOrderByCreatedAtDesc(UUID schoolId, UUID assignedInstructorId);
+
+    @EntityGraph(attributePaths = {
+        "drivingCategory",
+        "assignedInstructor",
+        "assignedInstructor.schoolMembership",
+        "assignedInstructor.schoolMembership.user"
+    })
     Optional<Candidate> findByIdAndSchoolId(UUID id, UUID schoolId);
 
     @EntityGraph(attributePaths = {

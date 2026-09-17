@@ -13,6 +13,9 @@ class Candidate {
     required this.assignedInstructorId,
     required this.assignedInstructorName,
     required this.notes,
+    this.requiredDrivingHours,
+    this.hasLogin = false,
+    this.loginEmail,
   });
 
   final String id;
@@ -28,6 +31,9 @@ class Candidate {
   final String? assignedInstructorId;
   final String? assignedInstructorName;
   final String? notes;
+  final int? requiredDrivingHours;
+  final bool hasLogin;
+  final String? loginEmail;
 
   String get fullName => '$firstName $lastName';
 }

@@ -9,6 +9,8 @@ class UpdateCandidate {
     required this.categoryCode,
     required this.assignedInstructorId,
     required this.notes,
+    this.requiredDrivingHours,
+    this.loginPassword,
   });
 
   final String firstName;
@@ -20,4 +22,6 @@ class UpdateCandidate {
   final String categoryCode;
   final String? assignedInstructorId;
   final String? notes;
+  final int? requiredDrivingHours;
+  final String? loginPassword;
 }

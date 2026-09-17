@@ -19,25 +19,38 @@ import com.autoskola365.backend.training.DrivingCategoryRepository;
 public class CandidateService {
 
     private static final String MANAGE_CANDIDATES = "candidates.manage";
+    private static final String VIEW_ASSIGNED_LESSONS = "lessons.view_assigned";
 
     private final CandidateRepository candidateRepository;
     private final SchoolRepository schoolRepository;
     private final DrivingCategoryRepository drivingCategoryRepository;
     private final InstructorRepository instructorRepository;
     private final AuthorizationService authorizationService;
+    private final com.autoskola365.backend.identity.UserAccountRepository users;
+    private final com.autoskola365.backend.identity.SchoolMembershipRepository memberships;
+    private final com.autoskola365.backend.identity.RoleRepository roles;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     public CandidateService(
         CandidateRepository candidateRepository,
         SchoolRepository schoolRepository,
         DrivingCategoryRepository drivingCategoryRepository,
         InstructorRepository instructorRepository,
-        AuthorizationService authorizationService
+        AuthorizationService authorizationService,
+        com.autoskola365.backend.identity.UserAccountRepository users,
+        com.autoskola365.backend.identity.SchoolMembershipRepository memberships,
+        com.autoskola365.backend.identity.RoleRepository roles,
+        org.springframework.security.crypto.password.PasswordEncoder passwordEncoder
     ) {
         this.candidateRepository = candidateRepository;
         this.schoolRepository = schoolRepository;
         this.drivingCategoryRepository = drivingCategoryRepository;
         this.instructorRepository = instructorRepository;
         this.authorizationService = authorizationService;
+        this.users = users;
+        this.memberships = memberships;
+        this.roles = roles;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -62,6 +75,30 @@ public class CandidateService {
             .filter(candidate -> normalizedCategory == null || candidate.getDrivingCategory().getCode().equals(normalizedCategory))
             .filter(candidate -> !withoutInstructor || candidate.getAssignedInstructor() == null)
             .filter(candidate -> assignedInstructorId == null || matchesAssignedInstructor(candidate, assignedInstructorId))
+            .filter(candidate -> normalizedQuery == null || matchesQuery(candidate, normalizedQuery))
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CandidateResponse> listInstructorCandidates(
+        UUID schoolId,
+        String status,
+        String categoryCode,
+        String query,
+        AuthenticatedUser authenticatedUser
+    ) {
+        requireInstructorAccess(schoolId, authenticatedUser);
+        InstructorProfile instructor = getInstructorForUser(schoolId, authenticatedUser);
+
+        String normalizedStatus = status == null || status.isBlank() ? null : CandidateStatus.normalize(status);
+        String normalizedCategory = categoryCode == null || categoryCode.isBlank() ? null : categoryCode.trim().toUpperCase();
+        String normalizedQuery = query == null || query.isBlank() ? null : query.trim();
+
+        return candidateRepository.findBySchoolIdAndAssignedInstructorIdOrderByCreatedAtDesc(schoolId, instructor.getId())
+            .stream()
+            .filter(candidate -> normalizedStatus == null || candidate.getStatus().equals(normalizedStatus))
+            .filter(candidate -> normalizedCategory == null || candidate.getDrivingCategory().getCode().equals(normalizedCategory))
             .filter(candidate -> normalizedQuery == null || matchesQuery(candidate, normalizedQuery))
             .map(this::toResponse)
             .toList();
@@ -100,6 +137,8 @@ public class CandidateService {
             request.notes()
         ));
 
+        candidate.setRequiredDrivingHours(request.requiredDrivingHours());
+        saveLoginPassword(candidate, request.loginPassword());
         return toResponse(candidate);
     }
 
@@ -119,6 +158,13 @@ public class CandidateService {
         String status = CandidateStatus.normalize(request.status());
         ensureOibIsUnique(schoolId, request.oib(), candidateId);
 
+        if (!candidate.getDrivingCategory().getId().equals(category.getId())) {
+            candidate.setRequiredDrivingHours(null);
+        }
+        if (request.requiredDrivingHours() != null) {
+            candidate.setRequiredDrivingHours(request.requiredDrivingHours());
+        }
+
         candidate.update(
             category,
             request.firstName(),
@@ -131,6 +177,7 @@ public class CandidateService {
             request.notes()
         );
 
+        saveLoginPassword(candidate, request.loginPassword());
         return toResponse(candidate);
     }
 
@@ -162,10 +209,54 @@ public class CandidateService {
             .orElseThrow(() -> new IllegalArgumentException("Assigned instructor does not exist."));
     }
 
+    private void saveLoginPassword(Candidate candidate, String password) {
+        if (password == null) return;
+        if (candidate.getUser() != null) {
+            var user = candidate.getUser();
+            var userMemberships = memberships.findByUserId(user.getId());
+            boolean hasCandidateAccess = userMemberships.stream().anyMatch(membership ->
+                membership.getSchool().getId().equals(candidate.getSchool().getId())
+                    && "candidate".equals(membership.getRole().getKey())
+                    && "ACTIVE".equals(membership.getStatus()));
+            boolean hasOtherAccess = userMemberships.stream().anyMatch(membership ->
+                !membership.getSchool().getId().equals(candidate.getSchool().getId())
+                    || !"candidate".equals(membership.getRole().getKey()));
+            if (!hasCandidateAccess || hasOtherAccess) {
+                throw new CandidateAccessDeniedException(
+                    "Lozinku je moguće promijeniti samo za kandidatski račun ove škole.");
+            }
+            user.changePasswordHash(passwordEncoder.encode(password));
+            return;
+        }
+        String email = candidate.getEmail();
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Za aktivaciju pristupa unesite email kandidata.");
+        }
+        if (users.findByEmailIgnoreCase(email.trim()).isPresent()) {
+            throw new IllegalArgumentException("Email već ima korisnički račun. Unesite drugi email za novi pristup.");
+        }
+        var role = roles.findByKey("candidate").orElseThrow(() -> new IllegalStateException("Missing candidate role seed."));
+        var user = users.save(new com.autoskola365.backend.identity.UserAccount(email.trim(),
+            passwordEncoder.encode(password), candidate.getFirstName(), candidate.getLastName(), candidate.getPhone()));
+        memberships.save(new com.autoskola365.backend.identity.SchoolMembership(candidate.getSchool(), user, role));
+        candidate.linkUser(user);
+    }
+
     private void requirePermission(UUID schoolId, AuthenticatedUser authenticatedUser) {
         if (!authorizationService.hasSchoolPermission(authenticatedUser, schoolId, MANAGE_CANDIDATES)) {
             throw new CandidateAccessDeniedException("User cannot manage candidates for this school.");
         }
+    }
+
+    private void requireInstructorAccess(UUID schoolId, AuthenticatedUser authenticatedUser) {
+        if (!authorizationService.hasSchoolPermission(authenticatedUser, schoolId, VIEW_ASSIGNED_LESSONS)) {
+            throw new CandidateAccessDeniedException("User cannot view assigned candidates for this school.");
+        }
+    }
+
+    private InstructorProfile getInstructorForUser(UUID schoolId, AuthenticatedUser authenticatedUser) {
+        return instructorRepository.findBySchoolMembershipSchoolIdAndSchoolMembershipUserId(schoolId, authenticatedUser.userId())
+            .orElseThrow(() -> new CandidateAccessDeniedException("User is not an instructor for this school."));
     }
 
     private boolean matchesQuery(Candidate candidate, String query) {
@@ -203,7 +294,10 @@ public class CandidateService {
             assignedInstructor == null ? null : assignedInstructor.getSchoolMembership().getUser().getFirstName()
                 + " "
                 + assignedInstructor.getSchoolMembership().getUser().getLastName(),
-            candidate.getNotes()
+            candidate.getNotes(),
+            candidate.getRequiredDrivingHours(),
+            candidate.getUser() != null,
+            candidate.getUser() == null ? null : candidate.getUser().getEmail()
         );
     }
 }

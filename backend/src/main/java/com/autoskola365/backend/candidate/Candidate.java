@@ -58,6 +58,9 @@ public class Candidate extends AuditableEntity {
 
     private String notes;
 
+    @Column(name = "required_driving_hours")
+    private Integer requiredDrivingHours;
+
     protected Candidate() {
     }
 
@@ -140,6 +143,8 @@ public class Candidate extends AuditableEntity {
         return assignedInstructor;
     }
 
+    public void linkUser(UserAccount user) { this.user = user; }
+
     public UserAccount getUser() {
         return user;
     }
@@ -170,5 +175,14 @@ public class Candidate extends AuditableEntity {
 
     public String getNotes() {
         return notes;
+    }
+
+    public Integer getRequiredDrivingHours() {
+        return requiredDrivingHours != null ? requiredDrivingHours
+            : "B".equals(drivingCategory.getCode()) ? 35 : null;
+    }
+
+    public void setRequiredDrivingHours(Integer requiredDrivingHours) {
+        this.requiredDrivingHours = requiredDrivingHours;
     }
 }

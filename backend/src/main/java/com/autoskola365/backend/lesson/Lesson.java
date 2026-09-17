@@ -67,6 +67,11 @@ public class Lesson extends AuditableEntity {
 
     private String notes;
 
+    private Instant completedAt;
+
+    @Column(columnDefinition = "text")
+    private String completionNote;
+
     @Column(name = "created_by_role", nullable = false)
     private String createdByRole = LessonCreatedByRole.ADMIN.name();
 
@@ -110,6 +115,7 @@ public class Lesson extends AuditableEntity {
         Instant endAt,
         String notes
     ) {
+        requireMutable();
         this.candidate = candidate;
         this.instructor = instructor;
         this.drivingCategory = drivingCategory;
@@ -128,15 +134,38 @@ public class Lesson extends AuditableEntity {
     }
 
     public void confirm() {
+        requireMutable();
         status = LessonStatus.CONFIRMED.value();
         confirmedAt = Instant.now();
         cancelledAt = null;
     }
 
     public void cancel() {
+        requireMutable();
         status = LessonStatus.CANCELLED.value();
         cancelledAt = Instant.now();
     }
+
+    public void complete(String note, Instant now) {
+        if (!LessonStatus.CONFIRMED.value().equals(status)) {
+            throw new LessonConflictException("Završiti se može samo potvrđeni sat.");
+        }
+        if (endAt.isAfter(now)) {
+            throw new LessonConflictException("Sat se može završiti tek nakon isteka termina.");
+        }
+        status = LessonStatus.COMPLETED.value();
+        completedAt = now;
+        completionNote = note == null || note.isBlank() ? null : note.trim();
+    }
+
+    private void requireMutable() {
+        if (LessonStatus.COMPLETED.value().equals(status) || LessonStatus.NO_SHOW.value().equals(status)) {
+            throw new LessonConflictException("Završeni sat nije moguće mijenjati.");
+        }
+    }
+
+    public Instant getCompletedAt() { return completedAt; }
+    public String getCompletionNote() { return completionNote; }
 
     public UUID getId() {
         return id;

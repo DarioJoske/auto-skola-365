@@ -15,6 +15,9 @@ class CandidateModel {
     required this.assignedInstructorId,
     required this.assignedInstructorName,
     required this.notes,
+    this.requiredDrivingHours,
+    this.hasLogin = false,
+    this.loginEmail,
   });
 
   factory CandidateModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +35,9 @@ class CandidateModel {
       assignedInstructorId: json['assignedInstructorId'] as String?,
       assignedInstructorName: json['assignedInstructorName'] as String?,
       notes: json['notes'] as String?,
+      requiredDrivingHours: json['requiredDrivingHours'] as int?,
+      hasLogin: json['hasLogin'] as bool? ?? false,
+      loginEmail: json['loginEmail'] as String?,
     );
   }
 
@@ -48,6 +54,9 @@ class CandidateModel {
   final String? assignedInstructorId;
   final String? assignedInstructorName;
   final String? notes;
+  final int? requiredDrivingHours;
+  final bool hasLogin;
+  final String? loginEmail;
 
   Candidate toEntity() {
     return Candidate(
@@ -64,6 +73,9 @@ class CandidateModel {
       assignedInstructorId: assignedInstructorId,
       assignedInstructorName: assignedInstructorName,
       notes: notes,
+      requiredDrivingHours: requiredDrivingHours,
+      hasLogin: hasLogin,
+      loginEmail: loginEmail,
     );
   }
 }

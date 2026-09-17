@@ -1,85 +1,33 @@
-# Auto Skola 365 - Monorepo Layout
+# Auto Skola 365 — struktura monorepa
 
-Status: Draft  
-Created: 2026-09-04
-
-## Current Layout
+Ažurirano: 2026-09-17.
 
 ```text
 apps/
-  admin_app/
-  instructor_app/
-  candidate_app/
-
-backend/
+  admin_app/        Flutter administracijska aplikacija
+  instructor_app/   Flutter Android/iOS instruktorska aplikacija
+  candidate_app/    Flutter Android/iOS kandidatska aplikacija
 packages/
-docs/
+  design_system/    Zajednička tema i UI komponente
+backend/            Spring Boot + PostgreSQL + Flyway, Maven (pom.xml)
+docs/               Produktna, arhitekturna i razvojna dokumentacija
+pubspec.yaml        Dart workspace i Melos skripte
+pubspec.lock        Zajedničko razrješavanje Dart/Flutter ovisnosti
 ```
 
-## Apps
+## Aplikacije i zajednički kod
 
-### apps/admin_app
+Sve tri aplikacije su implementirani Flutter paketi, s arhitekturom opisanom u
+[Flutter odluci](flutter-architecture.md). Sve koriste
+[design system](design-system.md). API, autentikacija i poslovne značajke ostaju
+unutar aplikacija dok ne postoji stvarna potreba za stabilnim zajedničkim paketom.
 
-Existing Flutter project moved here.
+## Razvojni alati
 
-Target:
+Root Dart workspace uključuje sve tri aplikacije i `packages/design_system`.
+Svaki član deklarira `resolution: workspace`. Melos 8.6.0 konfiguriran je u
+root pubspecu za provjere, testove i buildove. Naredbe i buduća poboljšanja
+nalaze se u [Melos vodiču](../development/melos.md).
 
-- Flutter Web for school admin.
-- Later, SuperAdmin routes can live here if permission boundaries stay clean.
-
-### apps/instructor_app
-
-Placeholder for future Flutter mobile instructor app.
-
-### apps/candidate_app
-
-Placeholder for future Flutter mobile candidate app.
-
-## Backend
-
-### backend
-
-Spring Boot backend service.
-
-Chosen direction:
-
-```text
-Spring Boot + PostgreSQL
-```
-
-Possible structure:
-
-```text
-backend/
-  src/main/java/...
-  src/main/resources/
-  src/test/java/...
-  build.gradle.kts
-  Dockerfile
-```
-
-## Shared Flutter Packages
-
-### packages
-
-Expected future packages:
-
-- `api_client`
-- `domain`
-- `design_system`
-- `auth`
-- `calendar`
-
-Create these only when real shared code exists. Avoid premature package
-splitting before app boundaries are clearer.
-
-## Workspace Tooling
-
-The root `pubspec.yaml` defines a Dart workspace and currently includes:
-
-```text
-apps/admin_app
-```
-
-Additional Flutter/Dart packages should be added to the workspace when created.
-The Java backend does not need to be part of the Dart workspace.
+Backend nije član Dart workspacea. Melosova skripta `test:backend` samo poziva
+postojeći `mvn test` iz njegovog direktorija.

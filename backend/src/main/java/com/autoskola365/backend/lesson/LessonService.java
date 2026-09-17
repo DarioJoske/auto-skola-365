@@ -154,6 +154,24 @@ public class LessonService {
     }
 
     @Transactional
+    public LessonResponse createInstructorReservation(
+        UUID schoolId, InstructorLessonReservationRequest request, AuthenticatedUser authenticatedUser
+    ) {
+        requireInstructorLessonAccess(schoolId, authenticatedUser);
+        InstructorProfile instructor = getInstructorForUser(schoolId, authenticatedUser);
+        if (!instructor.isActive()) {
+            throw new LessonAccessDeniedException("Instruktor nije aktivan.");
+        }
+        if (!request.startAt().isAfter(Instant.now())) {
+            throw new InvalidLessonException("Termin mora biti u budućnosti.");
+        }
+        return create(schoolId, new LessonRequest(
+            request.candidateId(), instructor.getId(), null, LessonType.DRIVING.value(),
+            LessonStatus.CONFIRMED.value(), request.startAt(), null, request.notes()
+        ), authenticatedUser);
+    }
+
+    @Transactional
     public LessonResponse createCandidateReservation(
         UUID schoolId,
         CandidateLessonReservationRequest request,
@@ -200,7 +218,7 @@ public class LessonService {
         AuthenticatedUser authenticatedUser
     ) {
         requireManageLessons(schoolId, authenticatedUser);
-        Lesson lesson = lessonRepository.findByIdAndSchoolId(lessonId, schoolId)
+        Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
             .orElseThrow(() -> new LessonNotFoundException("Lesson does not exist."));
         LessonInputs inputs = getInputs(schoolId, request);
 
@@ -226,7 +244,7 @@ public class LessonService {
 
     @Transactional
     public LessonResponse confirm(UUID schoolId, UUID lessonId, AuthenticatedUser authenticatedUser) {
-        Lesson lesson = lessonRepository.findByIdAndSchoolId(lessonId, schoolId)
+        Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
             .orElseThrow(() -> new LessonNotFoundException("Lesson does not exist."));
         requireManageLessonsOrAssignedInstructor(schoolId, lesson.getInstructor(), authenticatedUser);
         ensureNoOverlap(lesson, lesson.getId());
@@ -237,11 +255,26 @@ public class LessonService {
 
     @Transactional
     public LessonResponse cancel(UUID schoolId, UUID lessonId, AuthenticatedUser authenticatedUser) {
-        Lesson lesson = lessonRepository.findByIdAndSchoolId(lessonId, schoolId)
+        Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
             .orElseThrow(() -> new LessonNotFoundException("Lesson does not exist."));
         requireManageLessonsOrAssignedInstructor(schoolId, lesson.getInstructor(), authenticatedUser);
         lesson.cancel();
 
+        return toResponse(lesson);
+    }
+
+    @Transactional
+    public LessonResponse complete(UUID schoolId, UUID lessonId, CompleteLessonRequest request,
+                                   AuthenticatedUser authenticatedUser) {
+        requireInstructorLessonAccess(schoolId, authenticatedUser);
+        InstructorProfile instructor = getInstructorForUser(schoolId, authenticatedUser);
+        if (!instructor.isActive()) {
+            throw new LessonAccessDeniedException("Instruktor nije aktivan.");
+        }
+        Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
+            .orElseThrow(() -> new LessonNotFoundException("Termin ne postoji."));
+        requireAssignedInstructor(instructor, lesson);
+        lesson.complete(request.note(), Instant.now());
         return toResponse(lesson);
     }
 
@@ -293,6 +326,10 @@ public class LessonService {
         }
         if (!inputs.instructor().isActive()) {
             throw new InvalidLessonException("Instructor is not active.");
+        }
+        if (inputs.candidate().getAssignedInstructor() == null
+            || !inputs.candidate().getAssignedInstructor().getId().equals(inputs.instructor().getId())) {
+            throw new LessonConflictException("Kandidat nije dodijeljen odabranom instruktoru. Osvježite popis kandidata.");
         }
         boolean instructorSupportsCategory = inputs.instructor().getCategories()
             .stream()
@@ -400,6 +437,8 @@ public class LessonService {
             lesson.getConfirmedAt(),
             lesson.getCancelledAt(),
             lesson.getNotes(),
+            lesson.getCompletedAt(),
+            lesson.getCompletionNote(),
             lesson.getCreatedByRole()
         );
     }

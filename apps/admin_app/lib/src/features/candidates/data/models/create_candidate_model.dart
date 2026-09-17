@@ -11,6 +11,8 @@ class CreateCandidateModel {
     required this.categoryCode,
     required this.assignedInstructorId,
     required this.notes,
+    this.requiredDrivingHours,
+    this.loginPassword,
   });
 
   factory CreateCandidateModel.fromEntity(CreateCandidate candidate) {
@@ -24,6 +26,8 @@ class CreateCandidateModel {
       categoryCode: candidate.categoryCode,
       assignedInstructorId: candidate.assignedInstructorId,
       notes: candidate.notes,
+      requiredDrivingHours: candidate.requiredDrivingHours,
+      loginPassword: candidate.loginPassword,
     );
   }
 
@@ -36,6 +40,8 @@ class CreateCandidateModel {
   final String categoryCode;
   final String? assignedInstructorId;
   final String? notes;
+  final int? requiredDrivingHours;
+  final String? loginPassword;
 
   Map<String, dynamic> toJson() {
     return {
@@ -48,6 +54,8 @@ class CreateCandidateModel {
       'categoryCode': categoryCode,
       'assignedInstructorId': assignedInstructorId,
       'notes': notes,
+      'requiredDrivingHours': requiredDrivingHours,
+      if (loginPassword != null) 'loginPassword': loginPassword,
     };
   }
 }
