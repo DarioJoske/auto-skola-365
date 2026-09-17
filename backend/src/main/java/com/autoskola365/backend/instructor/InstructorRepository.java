@@ -11,6 +11,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface InstructorRepository extends JpaRepository<InstructorProfile, UUID> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select instructor from InstructorProfile instructor where instructor.id = :id and instructor.schoolMembership.school.id = :schoolId")
+    Optional<InstructorProfile> findForUpdate(@Param("id") UUID id, @Param("schoolId") UUID schoolId);
+
     @EntityGraph(attributePaths = {
         "schoolMembership",
         "schoolMembership.school",

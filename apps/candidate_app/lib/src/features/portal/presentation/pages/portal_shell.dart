@@ -33,11 +33,13 @@ final class PortalShell extends StatelessWidget {
           listener: (context, state) {
             final failure = state.actionFailure ?? state.loadFailure;
             if (failure?.statusCode == 401) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Sesija je istekla. Prijavite se ponovno.'),
-                ),
-              );
+              ScaffoldMessenger.of(context)
+                ..clearSnackBars()
+                ..showSnackBar(
+                  const SnackBar(
+                    content: Text('Sesija je istekla. Prijavite se ponovno.'),
+                  ),
+                );
               context.read<AuthCubit>().logout();
             } else if (state.actionFailure != null) {
               ScaffoldMessenger.of(context).showSnackBar(

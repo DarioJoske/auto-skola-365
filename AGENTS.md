@@ -291,3 +291,12 @@ Consult the relevant section when needed, matching examples to the repository's 
 - [Bloc lint configuration](https://bloclibrary.dev/lint/configuration/)
 - [Dart class modifiers](https://dart.dev/language/class-modifiers)
 - [Dart libraries](https://dart.dev/language/libraries)
+
+
+## Project Knowledge vault
+
+Projektni wiki: [indeks](</Users/dario.josipovic/Documents/Project-Knowledge/projects/auto-skola-365/wiki/index.md>).
+
+- Prije rada koji koristi ili mijenja wiki izričito pročitaj [zajedničke upute](</Users/dario.josipovic/Documents/Project-Knowledge/AGENTS.md>) i [projektne wiki upute](</Users/dario.josipovic/Documents/Project-Knowledge/projects/auto-skola-365/AGENTS.md>); vanjske AGENTS.md datoteke ne učitavaju se automatski samo zbog poveznice.
+- Za promjenu funkcionalnosti konzultiraj relevantne izvore i wiki, ali provjeri aktualni kod. Tehničke specifikacije ostaju u ovom repozitoriju; wiki čuva sažetke i poveznice. Pravila drugih projekata ne prenose se automatski.
+- Ako se ponašanje promijeni, ažuriraj pripadajuću dokumentaciju i, kad je dostupan za pisanje, relevantni wiki uz izvor/commit i oznaku lokalnih izmjena. Ako vault nije dostupan, navedi potrebno ažuriranje; ne tvrdi da je obavljeno.

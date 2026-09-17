@@ -1,3 +1,5 @@
+import 'package:auto_skola_365_instructor_app/src/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:auto_skola_365_instructor_app/src/features/auth/presentation/cubit/auth_state.dart';
 import 'dart:async';
 
 import 'package:auto_skola_365_instructor_app/src/core/api/failure.dart';
@@ -46,9 +48,96 @@ ProgressCubit hoursCubit(HoursRepository repository) => ProgressCubit(
   id: 'candidate',
 );
 
+class RecordingAuthCubit extends Cubit<AuthState> implements AuthCubit {
+  RecordingAuthCubit(this.onLogout) : super(const AuthState.initial());
+  final VoidCallback onLogout;
+  int logoutCalls = 0;
+  @override
+  Future<void> bootstrap() async {}
+  @override
+  Future<void> login({required String email, required String password}) async {}
+  @override
+  Future<void> logout() async {
+    onLogout();
+    logoutCalls++;
+    emit(const AuthState.unauthenticated());
+  }
+}
+
 void main() {
   late HoursRepository repository;
   setUp(() => repository = HoursRepository());
+
+  testWidgets(
+    '401 displays session expiry before logout and clears candidate data',
+    (tester) async {
+      final cubit = hoursCubit(repository);
+      final auth = RecordingAuthCubit(() {
+        expect(find.byType(ScaffoldMessenger), findsOneWidget);
+        expect(cubit.state.loadFailure?.statusCode, 401);
+      });
+      await cubit.load();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MultiBlocProvider(
+              providers: [
+                BlocProvider<AuthCubit>.value(value: auth),
+                BlocProvider.value(value: cubit),
+              ],
+              child: const ProgressView(),
+            ),
+          ),
+        ),
+      );
+      repository.failure = const Failure(
+        'JWT rejected',
+        statusCode: 401,
+        code: 'UNAUTHORIZED',
+      );
+      await cubit.load();
+      await tester.pump();
+      expect(
+        find.descendant(
+          of: find.byType(SnackBar),
+          matching: find.text('Sesija je istekla. Prijavite se ponovno.'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('25/35 sati odrađeno'), findsNothing);
+      expect(auth.logoutCalls, 1);
+      await tester.pumpWidget(const SizedBox());
+      await cubit.close();
+      await auth.close();
+    },
+  );
+
+  testWidgets(
+    '403 removes protected hours and shows the backend reason with retry',
+    (tester) async {
+      final cubit = hoursCubit(repository);
+      await cubit.load();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlocProvider.value(value: cubit, child: const ProgressView()),
+          ),
+        ),
+      );
+      repository.failure = const Failure(
+        'Kandidat više nije dodijeljen vama.',
+        statusCode: 403,
+        code: 'FORBIDDEN',
+      );
+      await cubit.load();
+      await tester.pumpAndSettle();
+      expect(find.text('Kandidat više nije dodijeljen vama.'), findsOneWidget);
+      expect(find.text('25/35 sati odrađeno'), findsNothing);
+      expect(find.text('Pokušaj ponovno'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      await cubit.close();
+    },
+  );
 
   test(
     'initial state has no fabricated hours and no pending request',
