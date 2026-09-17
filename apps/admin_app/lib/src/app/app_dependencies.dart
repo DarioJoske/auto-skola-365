@@ -1,7 +1,3 @@
-import '../features/progress/data/datasources/progress_remote_data_source.dart';
-import '../features/progress/data/repositories/progress_repository_impl.dart';
-import '../features/progress/domain/repositories/progress_repository.dart';
-import '../features/progress/domain/usecases/load_progress.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 
@@ -21,11 +17,19 @@ import '../features/candidates/domain/repositories/candidates_repository.dart';
 import '../features/candidates/domain/usecases/create_candidate.dart';
 import '../features/candidates/domain/usecases/list_candidates.dart';
 import '../features/candidates/domain/usecases/update_candidate.dart';
+import '../features/dashboard/data/datasources/school_overview_remote_data_source.dart';
+import '../features/dashboard/data/repositories/school_overview_repository_impl.dart';
+import '../features/dashboard/domain/repositories/school_overview_repository.dart';
+import '../features/dashboard/domain/usecases/load_school_overview.dart';
+import '../features/instructors/data/datasources/instructor_overview_remote_data_source.dart';
 import '../features/instructors/data/datasources/instructors_remote_data_source.dart';
+import '../features/instructors/data/repositories/instructor_overview_repository_impl.dart';
 import '../features/instructors/data/repositories/instructors_repository_impl.dart';
+import '../features/instructors/domain/repositories/instructor_overview_repository.dart';
 import '../features/instructors/domain/repositories/instructors_repository.dart';
 import '../features/instructors/domain/usecases/create_instructor.dart';
 import '../features/instructors/domain/usecases/list_instructors.dart';
+import '../features/instructors/domain/usecases/load_instructor_overview.dart';
 import '../features/instructors/domain/usecases/update_instructor.dart';
 import '../features/lessons/data/datasources/lessons_remote_data_source.dart';
 import '../features/lessons/data/repositories/lessons_repository_impl.dart';
@@ -35,6 +39,10 @@ import '../features/lessons/domain/usecases/confirm_lesson.dart';
 import '../features/lessons/domain/usecases/create_lesson.dart';
 import '../features/lessons/domain/usecases/list_lessons.dart';
 import '../features/lessons/domain/usecases/update_lesson.dart';
+import '../features/progress/data/datasources/progress_remote_data_source.dart';
+import '../features/progress/data/repositories/progress_repository_impl.dart';
+import '../features/progress/domain/repositories/progress_repository.dart';
+import '../features/progress/domain/usecases/load_progress.dart';
 
 final getIt = GetIt.instance;
 
@@ -137,4 +145,22 @@ void configureDependencies() {
     ..registerLazySingleton<CancelLessonUseCase>(
       () => CancelLessonUseCase(getIt<LessonsRepository>()),
     );
+  getIt.registerLazySingleton<SchoolOverviewRemoteDataSource>(
+    () => SchoolOverviewRemoteDataSource(getIt()),
+  );
+  getIt.registerLazySingleton<SchoolOverviewRepository>(
+    () => SchoolOverviewRepositoryImpl(getIt()),
+  );
+  getIt.registerLazySingleton<LoadSchoolOverview>(
+    () => LoadSchoolOverview(getIt()),
+  );
+  getIt.registerLazySingleton<InstructorOverviewRemoteDataSource>(
+    () => InstructorOverviewRemoteDataSource(getIt()),
+  );
+  getIt.registerLazySingleton<InstructorOverviewRepository>(
+    () => InstructorOverviewRepositoryImpl(getIt()),
+  );
+  getIt.registerLazySingleton<LoadInstructorOverview>(
+    () => LoadInstructorOverview(getIt()),
+  );
 }

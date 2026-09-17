@@ -16,6 +16,8 @@ class AdminApp extends StatefulWidget {
 class _AdminAppState extends State<AdminApp> {
   late final _router = createAppRouter(
     authCubit: getIt<AuthCubit>(),
+    loadSchoolOverview: getIt(),
+    loadInstructorOverview: getIt(),
     listCandidates: getIt(),
     createCandidate: getIt(),
     updateCandidate: getIt(),

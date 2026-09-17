@@ -4,16 +4,22 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/auth/presentation/cubit/auth_state.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/candidates/domain/entities/candidate_filters.dart';
 import '../../features/candidates/domain/usecases/create_candidate.dart';
 import '../../features/candidates/domain/usecases/list_candidates.dart';
 import '../../features/candidates/domain/usecases/update_candidate.dart';
 import '../../features/candidates/presentation/pages/candidates_page.dart';
+import '../../features/dashboard/domain/usecases/load_school_overview.dart';
 import '../../features/dashboard/presentation/pages/admin_shell_page.dart';
 import '../../features/dashboard/presentation/pages/overview_page.dart';
+import '../../features/dashboard/presentation/pages/settings_placeholder_page.dart';
 import '../../features/instructors/domain/usecases/create_instructor.dart';
 import '../../features/instructors/domain/usecases/list_instructors.dart';
+import '../../features/instructors/domain/usecases/load_instructor_overview.dart';
 import '../../features/instructors/domain/usecases/update_instructor.dart';
+import '../../features/instructors/presentation/pages/instructor_overview_page.dart';
 import '../../features/instructors/presentation/pages/instructors_page.dart';
+import '../../features/lessons/domain/entities/lesson_filters.dart';
 import '../../features/lessons/domain/usecases/cancel_lesson.dart';
 import '../../features/lessons/domain/usecases/confirm_lesson.dart';
 import '../../features/lessons/domain/usecases/create_lesson.dart';
@@ -24,6 +30,8 @@ import 'go_router_refresh_stream.dart';
 
 GoRouter createAppRouter({
   required AuthCubit authCubit,
+  required LoadSchoolOverview loadSchoolOverview,
+  required LoadInstructorOverview loadInstructorOverview,
   required ListCandidates listCandidates,
   required CreateCandidateUseCase createCandidate,
   required UpdateCandidateUseCase updateCandidate,
@@ -70,14 +78,24 @@ GoRouter createAppRouter({
         routes: [
           GoRoute(
             path: '/',
-            pageBuilder: (context, state) =>
-                _noTransitionPage(state, const OverviewPage()),
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              OverviewPage(loadOverview: loadSchoolOverview),
+            ),
           ),
           GoRoute(
             path: '/candidates',
             pageBuilder: (context, state) => _noTransitionPage(
               state,
               CandidatesPage(
+                key: ValueKey(state.uri.toString()),
+                initialFilters: CandidateFilters(
+                  query: state.uri.queryParameters['query'],
+                  assignedInstructorId:
+                      state.uri.queryParameters['instructorId'],
+                  withoutInstructor:
+                      state.uri.queryParameters['withoutInstructor'] == 'true',
+                ),
                 listCandidates: listCandidates,
                 listInstructors: listInstructors,
                 createCandidate: createCandidate,
@@ -87,6 +105,16 @@ GoRouter createAppRouter({
           ),
           GoRoute(
             path: '/instructors',
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              InstructorOverviewPage(
+                loadOverview: loadInstructorOverview,
+                query: state.uri.queryParameters['query'] ?? '',
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/instructors/manage',
             pageBuilder: (context, state) => _noTransitionPage(
               state,
               InstructorsPage(
@@ -101,6 +129,8 @@ GoRouter createAppRouter({
             pageBuilder: (context, state) => _noTransitionPage(
               state,
               LessonsPage(
+                key: ValueKey(state.uri.toString()),
+                initialFilters: _lessonFilters(state.uri),
                 listLessons: listLessons,
                 createLesson: createLesson,
                 updateLesson: updateLesson,
@@ -113,10 +143,8 @@ GoRouter createAppRouter({
           ),
           GoRoute(
             path: '/settings',
-            pageBuilder: (context, state) => _noTransitionPage(
-              state,
-              const _PlaceholderPage(title: 'Postavke'),
-            ),
+            pageBuilder: (context, state) =>
+                _noTransitionPage(state, const SettingsPlaceholderPage()),
           ),
         ],
       ),
@@ -128,20 +156,24 @@ Page<void> _noTransitionPage(GoRouterState state, Widget child) {
   return NoTransitionPage(key: state.pageKey, child: child);
 }
 
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        title,
-        style: Theme.of(
-          context,
-        ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-      ),
-    );
-  }
+LessonFilters? _lessonFilters(Uri uri) {
+  if (uri.queryParameters.isEmpty) return null;
+  final date =
+      DateTime.tryParse(uri.queryParameters['date'] ?? '')?.toLocal() ??
+      DateTime.now();
+  final start = DateTime(date.year, date.month, date.day);
+  return LessonFilters(
+    from: start,
+    to: start.add(const Duration(days: 7)),
+    instructorId: uri.queryParameters['instructorId'],
+    candidateId: uri.queryParameters['candidateId'],
+    status:
+        const [
+          'REQUESTED',
+          'CONFIRMED',
+          'CANCELLED',
+        ].contains(uri.queryParameters['status'])
+        ? uri.queryParameters['status']
+        : null,
+  );
 }

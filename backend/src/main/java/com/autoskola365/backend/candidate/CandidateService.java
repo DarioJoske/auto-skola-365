@@ -261,7 +261,8 @@ public class CandidateService {
 
     private boolean matchesQuery(Candidate candidate, String query) {
         String normalizedQuery = query.toLowerCase();
-        return contains(candidate.getFirstName(), normalizedQuery)
+        return contains(candidate.getFirstName() + " " + candidate.getLastName(), normalizedQuery)
+            || contains(candidate.getFirstName(), normalizedQuery)
             || contains(candidate.getLastName(), normalizedQuery)
             || contains(candidate.getEmail(), normalizedQuery)
             || contains(candidate.getPhone(), normalizedQuery)

@@ -29,6 +29,19 @@ zaključavanjem retka termina; ponovljeni pokušaj ne dodaje novi odrađeni sat.
 
 Opseg i ponovljive provjere: [regresije izolacije i pravila](../development/isolation-regressions.md).
 
+## Operativni pregled škole i instruktora
+
+`GET /api/schools/{schoolId}/overview` vraća današnje termine, aktivne kandidate,
+sve otvorene zahtjeve i potvrđene termine kojima je prošlo vrijeme završetka.
+`GET /api/schools/{schoolId}/instructors/overview` prima opcionalne `query` i
+`active` te vraća instruktore, njihove dodijeljene kandidate i potvrđeno tjedno
+opterećenje. Oba endpointa zahtijevaju aktivno članstvo s ovlastima
+`candidates.manage`, `instructors.manage` i `lessons.manage` u traženoj školi.
+
+Definicije pokazatelja, vremenska zona, ograničenja popisa i provjere nalaze se u
+[vodiču operativnog pregleda](../development/admin-overview.md). JSON zapise
+određuju `SchoolOverviewResponse`, `InstructorOverviewResponse` i `OverviewLesson`.
+
 ## Health
 
 Swagger UI:

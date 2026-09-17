@@ -54,6 +54,10 @@ public interface CandidateRepository extends JpaRepository<Candidate, UUID> {
     })
     Optional<Candidate> findBySchoolIdAndUserId(UUID schoolId, UUID userId);
 
+    long countBySchoolIdAndStatusIn(UUID schoolId, List<String> statuses);
+
+    long countBySchoolIdAndStatusInAndAssignedInstructorIsNull(UUID schoolId, List<String> statuses);
+
     boolean existsBySchoolIdAndOib(UUID schoolId, String oib);
 
     boolean existsBySchoolIdAndOibAndIdNot(UUID schoolId, String oib, UUID id);

@@ -1,12 +1,12 @@
 import 'package:auto_skola_365_admin_app/src/features/lessons/presentation/cubit/lessons_cubit.dart';
-import 'package:auto_skola_365_admin_app/src/features/lessons/presentation/pages/lessons_page.dart';
+import 'package:auto_skola_365_admin_app/src/features/lessons/presentation/pages/lessons_view.dart';
 import 'package:auto_skola_design_system/design_system.dart';
 import 'package:auto_skola_365_admin_app/src/features/candidates/presentation/cubit/candidates_cubit.dart';
 import 'package:auto_skola_365_admin_app/src/features/candidates/presentation/cubit/candidates_state.dart';
-import 'package:auto_skola_365_admin_app/src/features/candidates/presentation/pages/candidates_page.dart';
+import 'package:auto_skola_365_admin_app/src/features/candidates/presentation/pages/candidates_view.dart';
 import 'package:auto_skola_365_admin_app/src/features/instructors/presentation/cubit/instructors_cubit.dart';
 import 'package:auto_skola_365_admin_app/src/features/instructors/presentation/cubit/instructors_state.dart';
-import 'package:auto_skola_365_admin_app/src/features/instructors/presentation/pages/instructors_page.dart';
+import 'package:auto_skola_365_admin_app/src/features/instructors/presentation/pages/instructors_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
