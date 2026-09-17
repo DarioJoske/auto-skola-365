@@ -119,6 +119,25 @@ void main() {
     );
     await tester.scrollUntilVisible(find.byType(TextFormField), 300);
     await tester.enterText(find.byType(TextFormField), 'Vježba parkiranja');
+    final refreshResult = Completer<Either<Failure, InstructorLesson>>();
+    repository.onGet = () => refreshResult.future;
+    final refresh = cubit.load();
+    await tester.pump();
+    expect(find.text('Vježba parkiranja'), findsOneWidget);
+    refreshResult.complete(
+      const Left(Failure('Osvježavanje nije uspjelo.', statusCode: 503)),
+    );
+    await refresh;
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byType(TextFormField));
+    await tester.pumpAndSettle();
+    expect(find.text('Vježba parkiranja'), findsOneWidget);
+    repository.onGet = null;
+    await cubit.load();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byType(TextFormField));
+    await tester.pumpAndSettle();
+    expect(find.text('Vježba parkiranja'), findsOneWidget);
     await tester.ensureVisible(find.text('Dovrši vožnju'));
     await tester.tap(find.text('Dovrši vožnju'));
     await tester.pump();
@@ -144,6 +163,41 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await progress.close();
+  });
+
+  testWidgets('cancellation only runs after explicit confirmation', (
+    tester,
+  ) async {
+    await cubit.load();
+    final progress = hoursCubit(HoursRepository());
+    addTearDown(progress.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MultiBlocProvider(
+            providers: [
+              BlocProvider.value(value: cubit),
+              BlocProvider<ProgressCubit>.value(value: progress),
+            ],
+            child: const LessonDetailView(),
+          ),
+        ),
+      ),
+    );
+    await tester.ensureVisible(find.text('Otkazi termin'));
+    await tester.tap(find.text('Otkazi termin'));
+    await tester.pumpAndSettle();
+    expect(repository.cancelCalls, 0);
+    await tester.tap(find.text('Odustani'));
+    await tester.pumpAndSettle();
+    expect(repository.cancelCalls, 0);
+    await tester.tap(find.text('Otkazi termin'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Otkaži termin'));
+    await tester.pumpAndSettle();
+    expect(repository.cancelCalls, 1);
+    expect(find.text('Dovrši vožnju'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
   });
 
   test(
@@ -190,6 +244,17 @@ void main() {
 class CompletionRepository extends Fake implements InstructorLessonsRepository {
   var result = Completer<Either<Failure, InstructorLesson>>();
   int calls = 0;
+  int cancelCalls = 0;
+  @override
+  FutureEither<InstructorLesson> cancel({
+    required String schoolId,
+    required String accessToken,
+    required String lessonId,
+  }) async {
+    cancelCalls++;
+    return Right(lesson(lessonId, 'CANCELLED'));
+  }
+
   String? note;
   FutureEither<InstructorLesson> Function()? onGet;
 

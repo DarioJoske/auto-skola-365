@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -110,9 +111,11 @@ class _InstructorCandidatesViewState extends State<InstructorCandidatesView> {
           previous.errorEventId != current.errorEventId &&
           current.errorMessage != null,
       listener: (context, state) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+        if (state.errorStatusCode == 401) {
+          showSessionExpired(context);
+        } else {
+          showAppSnackBar(context, state.errorMessage!);
+        }
         if (state.errorStatusCode == 401) {
           context.read<AuthCubit>().logout();
         }
@@ -130,6 +133,8 @@ class _InstructorCandidatesViewState extends State<InstructorCandidatesView> {
                   onRefresh: () =>
                       context.read<InstructorCandidatesCubit>().load(),
                 ),
+                if (state.isLoading)
+                  AppLoadingState(isRefreshing: state.candidates.isNotEmpty),
                 const SizedBox(height: 16),
                 _CandidatesFilters(
                   searchController: _searchController,
@@ -137,13 +142,15 @@ class _InstructorCandidatesViewState extends State<InstructorCandidatesView> {
                 ),
                 const SizedBox(height: 12),
                 if (state.status == InstructorCandidatesStatus.failure)
-                  _InlineError(
+                  AppInlineError(
                     message:
                         state.errorMessage ?? 'Kandidate nije moguce ucitati.',
                     onRetry: () =>
                         context.read<InstructorCandidatesCubit>().load(),
-                  )
-                else if (state.candidates.isEmpty && !state.isLoading)
+                  ),
+                if (state.candidates.isEmpty &&
+                    !state.isLoading &&
+                    state.status != InstructorCandidatesStatus.failure)
                   _EmptyCandidates(hasActiveFilter: state.filters.isActive)
                 else
                   ...state.candidates.map(
@@ -372,8 +379,6 @@ class _CandidateCard extends StatelessWidget {
                     children: [
                       Text(
                         candidate.fullName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w800),
                       ),
@@ -507,74 +512,14 @@ class _CandidatesAccessError extends StatelessWidget {
 
 class _EmptyCandidates extends StatelessWidget {
   const _EmptyCandidates({required this.hasActiveFilter});
-
   final bool hasActiveFilter;
-
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.people_outline, color: colorScheme.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                hasActiveFilter
-                    ? 'Nema kandidata za odabrane filtere.'
-                    : 'Trenutno nema dodijeljenih kandidata.',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _InlineError extends StatelessWidget {
-  const _InlineError({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: colorScheme.errorContainer,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Icon(Icons.error_outline, color: colorScheme.onErrorContainer),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(color: colorScheme.onErrorContainer),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Pokusaj ponovno'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AppEmptyState(
+    title: 'Nema kandidata',
+    message: hasActiveFilter
+        ? 'Promijeni filtere ili pretragu.'
+        : 'Još nema dodijeljenih kandidata.',
+  );
 }
 
 String _initials(InstructorCandidate candidate) {

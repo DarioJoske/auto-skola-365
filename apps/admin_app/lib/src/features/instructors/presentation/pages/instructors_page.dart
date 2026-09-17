@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -116,65 +117,78 @@ class _InstructorsViewState extends State<InstructorsView> {
           previous.errorEventId != current.errorEventId &&
           current.errorMessage != null,
       listener: (context, state) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+        if (state.errorStatusCode == 401) {
+          showSessionExpired(context);
+        } else {
+          showAppSnackBar(context, state.errorMessage!);
+        }
         if (state.errorStatusCode == 401) {
           context.read<AuthCubit>().logout();
         }
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Instruktori',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+      child: BlocBuilder<InstructorsCubit, InstructorsState>(
+        builder: (context, state) {
+          final isLoading =
+              state.status == InstructorsStatus.loading ||
+              state.status == InstructorsStatus.initial;
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Instruktori',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        FilledButton.icon(
+                          onPressed: () => _openCreateDialog(context),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Novi instruktor'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    _InstructorFiltersBar(
+                      active: _active,
+                      categoryCode: _categoryCode,
+                      onActiveChanged: (value) =>
+                          setState(() => _active = value),
+                      onCategoryChanged: (value) =>
+                          setState(() => _categoryCode = value),
+                      onApply: () => _applyFilters(context),
+                      onClear: () => _clearFilters(context),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
-              FilledButton.icon(
-                onPressed: () => _openCreateDialog(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Novi instruktor'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _InstructorFiltersBar(
-            active: _active,
-            categoryCode: _categoryCode,
-            onActiveChanged: (value) => setState(() => _active = value),
-            onCategoryChanged: (value) => setState(() => _categoryCode = value),
-            onApply: () => _applyFilters(context),
-            onClear: () => _clearFilters(context),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: BlocBuilder<InstructorsCubit, InstructorsState>(
-              builder: (context, state) {
-                if (state.status == InstructorsStatus.loading ||
-                    state.status == InstructorsStatus.initial) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state.status == InstructorsStatus.failure) {
-                  return _EmptyState(
-                    title: 'Instruktore nije moguce ucitati',
-                    message: state.errorMessage ?? 'Pokusaj ponovno.',
-                    action: TextButton.icon(
-                      onPressed: () => context.read<InstructorsCubit>().load(),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Pokusaj ponovno'),
+              if (isLoading)
+                SliverToBoxAdapter(
+                  child: AppLoadingState(
+                    isRefreshing: state.instructors.isNotEmpty,
+                  ),
+                ),
+              if (state.status == InstructorsStatus.failure)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: AppInlineError(
+                      message: state.errorMessage ?? 'Pokušaj ponovno.',
+                      onRetry: () => context.read<InstructorsCubit>().load(),
                     ),
-                  );
-                }
-
-                if (state.instructors.isEmpty) {
-                  return _EmptyState(
+                  ),
+                ),
+              if (state.instructors.isEmpty &&
+                  !isLoading &&
+                  state.status != InstructorsStatus.failure)
+                SliverToBoxAdapter(
+                  child: AppEmptyState(
                     title: state.filters.isActive
                         ? 'Nema rezultata'
                         : 'Nema instruktora',
@@ -194,24 +208,21 @@ class _InstructorsViewState extends State<InstructorsView> {
                             : 'Dodaj instruktora',
                       ),
                     ),
-                  );
-                }
-
-                return ListView.separated(
-                  itemCount: state.instructors.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final instructor = state.instructors[index];
-                    return _InstructorRow(
-                      instructor: instructor,
-                      onEdit: () => _openEditDialog(context, instructor),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+                  ),
+                ),
+              SliverList.separated(
+                key: const ValueKey('results'),
+                itemCount: state.instructors.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) => _InstructorRow(
+                  instructor: state.instructors[index],
+                  onEdit: () =>
+                      _openEditDialog(context, state.instructors[index]),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -244,6 +255,9 @@ class _InstructorFiltersBar extends StatelessWidget {
         SizedBox(
           width: 190,
           child: DropdownButtonFormField<bool>(
+            isExpanded: true,
+            itemHeight: null,
+            isDense: false,
             initialValue: active,
             decoration: const InputDecoration(labelText: 'Status'),
             items: const [
@@ -257,6 +271,9 @@ class _InstructorFiltersBar extends StatelessWidget {
         SizedBox(
           width: 160,
           child: DropdownButtonFormField<String>(
+            isExpanded: true,
+            itemHeight: null,
+            isDense: false,
             initialValue: categoryCode,
             decoration: const InputDecoration(labelText: 'Kategorija'),
             items: [
@@ -762,48 +779,6 @@ class _AvailabilityRow extends StatelessWidget {
             tooltip: 'Ukloni termin',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.title,
-    required this.message,
-    required this.action,
-  });
-
-  final String title;
-  final String message;
-  final Widget action;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            action,
-          ],
-        ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -236,9 +237,11 @@ class _LessonsViewState extends State<LessonsView> {
           previous.errorEventId != current.errorEventId &&
           current.errorMessage != null,
       listener: (context, state) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+        if (state.errorStatusCode == 401) {
+          showSessionExpired(context);
+        } else {
+          showAppSnackBar(context, state.errorMessage!);
+        }
         if (state.errorStatusCode == 401) {
           context.read<AuthCubit>().logout();
         }
@@ -285,6 +288,9 @@ class _LessonsViewState extends State<LessonsView> {
                   SizedBox(
                     width: 240,
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      itemHeight: null,
+                      isDense: false,
                       initialValue: state.filters.instructorId,
                       decoration: const InputDecoration(
                         labelText: 'Instruktor',
@@ -309,6 +315,9 @@ class _LessonsViewState extends State<LessonsView> {
                   SizedBox(
                     width: 190,
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      itemHeight: null,
+                      isDense: false,
                       initialValue: state.filters.status,
                       decoration: const InputDecoration(
                         labelText: 'Status',
@@ -345,7 +354,7 @@ class _LessonsViewState extends State<LessonsView> {
               if (state.status == LessonsStatus.failure)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: _InlineError(
+                  child: AppInlineError(
                     message:
                         state.errorMessage ?? 'Termine nije moguce ucitati.',
                     onRetry: () => context.read<LessonsCubit>().load(),
@@ -392,11 +401,11 @@ class _LessonsViewState extends State<LessonsView> {
                       ),
                     ),
                     if (state.status == LessonsStatus.loading)
-                      const Positioned.fill(
-                        child: ColoredBox(
-                          color: Color(0x33FFFFFF),
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
+                      const Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: AppLoadingState(isRefreshing: true),
                       ),
                   ],
                 ),
@@ -550,6 +559,9 @@ class _LessonDialogState extends State<LessonDialog> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      itemHeight: null,
+                      isDense: false,
                       initialValue:
                           state.instructors.any((i) => i.id == _instructorId)
                           ? _instructorId
@@ -575,6 +587,9 @@ class _LessonDialogState extends State<LessonDialog> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      itemHeight: null,
+                      isDense: false,
                       key: ValueKey('$_instructorId:$selectedCandidate'),
                       initialValue: selectedCandidate,
                       decoration: const InputDecoration(labelText: 'Kandidat'),
@@ -599,6 +614,9 @@ class _LessonDialogState extends State<LessonDialog> {
                       ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      itemHeight: null,
+                      isDense: false,
                       initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: _lessonStatuses
@@ -761,6 +779,14 @@ class _LessonDetailsDialog extends StatelessWidget {
                 onPressed: state.isSubmitting
                     ? null
                     : () async {
+                        final confirmed = await showAppConfirmation(
+                          context,
+                          title: 'Otkazati termin?',
+                          message:
+                              'Termin će biti otkazan za kandidata i instruktora.',
+                          confirmLabel: 'Otkaži termin',
+                        );
+                        if (!confirmed || !context.mounted) return;
                         final cancelled = await context
                             .read<LessonsCubit>()
                             .cancel(lesson.id);
@@ -802,46 +828,6 @@ class _DetailRow extends StatelessWidget {
           ),
           Expanded(child: Text(value)),
         ],
-      ),
-    );
-  }
-}
-
-class _InlineError extends StatelessWidget {
-  const _InlineError({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.errorContainer,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Icon(
-              Icons.error_outline,
-              color: Theme.of(context).colorScheme.onErrorContainer,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onErrorContainer,
-                ),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Pokusaj ponovno'),
-            ),
-          ],
-        ),
       ),
     );
   }

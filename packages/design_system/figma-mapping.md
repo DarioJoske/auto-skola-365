@@ -141,16 +141,16 @@ Alpha je zaokružena na najbliži 8-bitni kanal. Zadane kartice bez sjene korist
 | ProgressCard, 16:3 | AppProgressCard | Omjer od pozivatelja, neograničen stvarni tekst, null cilj, osvježavanje. |
 | ListItem, 16:10 | AppListItem | Avatar/leading, naslov, podnaslov, dodatak i InkWell akcija. Dodatak ispod teksta radi uskog prikaza. |
 | InfoCard, 16:16 | AppInfoCard | Eyebrow/title/body/action. |
-| DataRow, 17:6 | Material DataTable/DataRow/DataCell + AppStatusBadge | Širine određuje tablica; horizontalni scroll na uskom prikazu. Primjer u admin galeriji. |
+| DataRow, 17:6 | Material DataTable/DataRow/DataCell + AppStatusBadge + AppHorizontalScroll | Širine određuje tablica; horizontalni scroll na uskom prikazu. Primjer u admin galeriji. |
 | CalendarEvent, 23:82 | AppCard s radius md, padding space12, bojom primaryContainer + tekstovi i AppStatusBadge | Kalendar aplikacije određuje geometriju i termine; novi kalendarski sustav nije uveden. |
 | RouteBanner, 29:7 | AppCard s radius xl, inverseSurface + lokalizirani tekstovi | Sadržaj i raspored ostaju u ekranu aplikacije. |
 | EmptyState, 37:4 | AppEmptyState | Naslov, opis i opcionalna akcija. Naslov ima heading semantiku. |
-| Notice, 39:36; Error, 17:16 | AppNotice | Error/warning/success/info/neutral; live-region poruka i opcionalni retry uz postojeći sadržaj. |
-| Snackbar, 37:14 | Material SnackBar + SnackBarThemeData | Prikazuje aplikacijski listener nakon promjene stanja. |
-| ConfirmationDialog, 38:2354 | Material AlertDialog + DialogThemeData | Tekstovi, potvrda i odustajanje iz aplikacije. |
-| BottomNavigation, 20:23; NavigationItem, 20:12 | Material NavigationBar/NavigationDestination | Tema 76 px, izbor i go_router ostaju u aplikaciji. |
-| AdminSidebar, 21:34; AdminNavigationItem, 21:33 | NavigationRail ili postojeći shell/ListTile | Tema za selected stanje; odredišta i breakpoints bira aplikacija. |
-| MobileHeader, 20:13; AdminHeader, 23:69 | AppBar / postojeći shell + TextTheme | Status bar ostaje platformi; ne kodira se Figma 9:41 ili baterija. |
+| Notice, 39:36; Error, 17:16 | AppNotice / AppInlineError | Error/warning/success/info/neutral; live-region poruka i opcionalni retry uz postojeći sadržaj. |
+| Snackbar, 37:14 | showAppSnackBar / showSessionExpired + SnackBarThemeData | Prikazuje aplikacijski listener nakon promjene stanja. |
+| ConfirmationDialog, 38:2354 | showAppConfirmation → AlertDialog + DialogThemeData | Tekstovi, potvrda i odustajanje iz aplikacije. |
+| BottomNavigation, 20:23; NavigationItem, 20:12 | AppNavigationShell → NavigationBar/NavigationDestination | Osnovna visina 76 px; raste s tekstom, skriva se uz tipkovnicu. Izbor i go_router ostaju u aplikaciji. |
+| AdminSidebar, 21:34; AdminNavigationItem, 21:33 | AppNavigationShell → ListTile / NavigationRail / Drawer | Sidebar 256 px od 1200, rail 80 px od 600, ladica ispod 600. Postojeća odredišta daje aplikacija. |
+| MobileHeader, 20:13; AdminHeader, 23:69 | AppNavigationShell + TextTheme | Status bar ostaje platformi; ne kodira se Figma 9:41 ili baterija. |
 | MaterialIcon, 19:6 | Icon / postojeći Material Icons | Pozivatelj bira glyph i semantičku oznaku; ne uvodi se novi font ikona. |
 
 Gumbi imaju minimalno 48×48, ali rastu s tekstom. Material hover/pressed slojevi

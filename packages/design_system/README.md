@@ -43,6 +43,12 @@ koriste `tone`, koji ima prednost ako su navedena oba parametra.
 - `AppPage`: širina do 1120 i prilagodljive margine prema širini roditelja;
   ne preuzima scroll. Za dugačak sadržaj aplikacija koristi `ListView` ili
   `SingleChildScrollView`.
+- `AppNavigationShell`: admin sidebar/rail/ladica ili mobilna donja navigacija;
+  callbackovi i `AppDestination` dolaze iz aplikacije. Navigacija ne posjeduje router.
+- `AppLoadingState`, `AppInlineError`: prvo učitavanje, osvježavanje uz postojeći
+  sadržaj i inline ponovni pokušaj. `showAppSnackBar`, `showSessionExpired` i
+  `showAppConfirmation` standardiziraju povratne informacije i potvrde.
+- `AppHorizontalScroll`: vodoravna traka i pomicanje širokih tablica/kontrola.
 - `AppStatusBadge`: info/success/warning/error/neutral uz obavezni tekst.
 - `AppEmptyState`, `AppNotice`, `AppInfoCard`: prazno stanje, inline obavijest
   ili opis sljedećeg koraka s opcionalnom akcijom.
@@ -118,3 +124,8 @@ greške i ponovnog pokušaja.
 Sve tri aplikacije već koriste zajedničku temu. Ovaj zadatak proširuje paket;
 zamjena pojedinačnih ekrana novim karticama i poslovni tokovi pripadaju sljedećim
 zadacima. Nove ovisnosti i nadogradnja SDK-a nisu potrebni.
+
+Previewi `adminNavigationPreview` (1440/1024) i `mobileNavigationPreview`
+(390/360 uz dvostruki tekst) prikazuju navigaciju, unos, osvježavanje, grešku,
+ponovni pokušaj i potvrdu. Ne trebaju mrežu ni prijavu. Detalji provjera su u
+[vodiču #5](../../docs/development/responsive-shells.md).

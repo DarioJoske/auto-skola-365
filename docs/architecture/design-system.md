@@ -4,10 +4,11 @@ Odluka: 2026-09-17. Koristimo mali Flutter paket `packages/design_system` za
 boje, tipografiju, razmake, temu i ponovljive prezentacijske komponente.
 
 Sve tri aplikacije ovise o [paketu](../../packages/design_system/README.md).
-Kandidatska aplikacija prva primjenjuje novi raspored: početni pregled, termini
-i profil; na mobitelu donja navigacija, na širokom ekranu bočna navigacija.
-Postojeći admin i instruktor preuzimaju temu, a promjene rasporeda rade se
-postupno po ekranu. Paket nema API, stanje korisnika ili poslovnu logiku.
+Sve tri aplikacije koriste `AppNavigationShell`: admin prikazuje sidebar od
+256 px na širini ≥1200, kompaktnu traku od 80 px na 600–1199 i ladicu ispod
+600 px. Kandidat i instruktor koriste donju navigaciju za postojeća odredišta;
+otvorena tipkovnica je privremeno skriva. Rute, auth i odabir odredišta ostaju
+u aplikacijama. Paket nema API, stanje korisnika ili poslovnu logiku.
 
 Proširena specifikacija za sve tri aplikacije nalazi se u
 [Figma projektu](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc).
@@ -44,3 +45,21 @@ Iz korijena projekta pokrenite `melos run check:design-system`. Skripta
 provjerava formatiranje, analizu i testove paketa te svih aplikacija koje ga
 koriste. Razvojne naredbe i budući CI koraci opisani su u
 [Melos vodiču](../development/melos.md).
+
+## Zajednička stanja i osvježavanje (#5)
+
+`AppLoadingState` razlikuje prvo učitavanje i nenametljivu traku osvježavanja.
+`AppInlineError` prikazuje poruku backenda i ponovni pokušaj, `AppEmptyState`
+prazan uspješan rezultat. `showAppSnackBar`, `showSessionExpired` i
+`showAppConfirmation` dijele Material izgled i ponašanje. Otkazivanje termina
+u adminu i instruktoru traži potvrdu prije poziva postojećeg Cubita.
+
+Admin popisi i instruktorov raspored imaju pomične kontrole i sadržaj.
+Osvježavanje zadržava postojeće popise/kalendar, kandidatski portal i unesenu
+bilješku dovršavanja vožnje. Greška osvježavanja ostavlja podatke uz inline
+ponovni pokušaj. Autorizacijski redirect ostaje u routeru. Nema nove offline
+pohrane ni oznake „offline”: zadržavanje podataka u memoriji nije dokaz offline
+rada. Široke tablice koriste `AppHorizontalScroll`.
+
+[Provjere navigacije i stanja](../development/responsive-shells.md) opisuju
+pokretanje testova, previewe, pregledane širine i ograničenja provjere.

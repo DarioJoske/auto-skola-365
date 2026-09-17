@@ -1,5 +1,9 @@
 library;
 
+export 'src/components/app_navigation_shell.dart';
+export 'src/components/app_feedback.dart';
+export 'src/components/app_horizontal_scroll.dart';
+
 export 'src/components/app_button.dart';
 export 'src/components/app_card.dart';
 export 'src/components/app_empty_state.dart';
