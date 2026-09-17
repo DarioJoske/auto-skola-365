@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/portal_cubit.dart';
-import 'lesson_card.dart';
+import '../utils/lesson_formatters.dart';
+import '../cubit/portal_state.dart';
 
 Future<void> showLessonRequest(BuildContext context) async {
   final cubit = context.read<PortalCubit>();

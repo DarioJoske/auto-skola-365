@@ -40,3 +40,45 @@ Dovršene vožnje ulaze u isti brojač sati koji koriste admin i instruktor.
 Vizualne osnove nalaze se u [zajedničkom design systemu](../../packages/design_system/README.md).
 Provjere: `dart format lib`, `flutter analyze`, `flutter test`.
 Android/iOS projekti su inicijalizirani; distribucija i potpisivanje nisu dio ove promjene.
+
+## Organizacija prezentacijskog sloja
+
+Aplikacija ima dva featurea: `auth` za prijavu i sesiju te `portal` za
+kandidatski pregled, termine i profil. Oba zadržavaju `data`, `domain` i
+`presentation` slojeve.
+
+```text
+features/
+  auth/presentation/
+    cubit/                  # AuthCubit i AuthState
+    pages/login_page.dart   # okvir i raspored stranice
+    widgets/login_form.dart # unos, validacija i slanje prijave
+  portal/presentation/
+    cubit/                  # PortalCubit i zasebni PortalState
+    pages/                  # home_page, lessons_page, profile_page, portal_shell
+    widgets/                # kartice, portal_content, portal_navigation, dijalog
+    utils/lesson_formatters.dart
+```
+
+Svaka stranica ima svoju datoteku. Sadržajne kartice i zajednički prikaz
+učitavanja/greške nalaze se u zasebnim widgetima. `PortalShell` upravlja
+životnim ciklusom providera i reakcijama na stanje; `PortalNavigation` prikazuje
+navigaciju. `LoginForm` zadržava vlasništvo nad kontrolerima i validacijom.
+Formatiranje datuma/vremena pripada prezentacijskom sloju portala.
+
+### Zašto jedan PortalCubit za tri stranice?
+
+`GET /api/schools/{schoolId}/candidate-portal` vraća zajednički `CandidatePortal`:
+profil, instruktora, sate i termine. Trenutačni ekrani prikazuju različite dijelove
+tog skupa, a jedina mutacija portala je zahtjev za termin. Zajednički Cubit se
+kreira u shellu za prijavljenog korisnika/školu; promjena odredišta ne pokreće
+ponovno učitavanje, a uspješan zahtjev osvježava podatke za sve ekrane.
+`AuthCubit` zasebno upravlja autentikacijom. Lokalni izbor povijesti termina i
+unos u dijalog ostaju widget stanje.
+
+Ovo je odluka za trenutačni mali opseg, ne pravilo da jedan endpoint ili jedna
+aplikacija mora imati jedan Cubit. Samostalno uređivanje profila, složeniji
+raspored ili neovisno učitavanje i paginacija bili bi razlog za razdvajanje
+featurea i njihovih Cubita, uz usklađivanje zajedničkih podataka kroz repozitorij.
+Sama podjela widgeta u datoteke ne zahtijeva nove Cubite niti dupliciranje
+učitavanja i auth pravila.

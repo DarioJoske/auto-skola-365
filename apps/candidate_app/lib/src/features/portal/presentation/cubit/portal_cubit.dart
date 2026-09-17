@@ -1,25 +1,9 @@
 import 'package:bloc/bloc.dart';
 import '../../../../core/api/failure.dart';
 import '../../../../core/api/result_extensions.dart';
-import '../../domain/entities/candidate_portal.dart';
+import 'portal_state.dart';
 import '../../domain/usecases/load_portal.dart';
 import '../../domain/usecases/request_lesson.dart';
-
-final class PortalState {
-  const PortalState({
-    this.data,
-    this.loading = false,
-    this.saving = false,
-    this.loadFailure,
-    this.actionFailure,
-    this.errorId = 0,
-    this.savedId = 0,
-  });
-  final CandidatePortal? data;
-  final bool loading, saving;
-  final Failure? loadFailure, actionFailure;
-  final int errorId, savedId;
-}
 
 class PortalCubit extends Cubit<PortalState> {
   PortalCubit({
