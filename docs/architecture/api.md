@@ -407,6 +407,9 @@ updated instructor object.
 
 ## Lessons
 
+The [design handoff](design-handoff.md) maps the Figma blueprint to these
+contracts, including current state transitions and unsupported interactions.
+
 Lessons are school-scoped. Admin users need `lessons.manage`. Assigned
 instructors need `lessons.view_assigned` for instructor-facing lesson access.
 Candidate users need `lessons.reserve_own` and a linked `candidates.user_id`
@@ -419,7 +422,17 @@ Lesson statuses:
 - `CONFIRMED`: instructor/admin confirmed the slot.
 - `COMPLETED`: lesson was completed.
 - `CANCELLED`: lesson was cancelled and no longer blocks overlaps.
-- `NO_SHOW`: candidate did not attend.
+- `NO_SHOW`: candidate did not attend; recognized for reads, but no current
+  write action sets this status.
+
+Creation/update accepts `REQUESTED`, `CONFIRMED` and `CANCELLED`; direct writes
+to `COMPLETED` or `NO_SHOW` return `400`. Confirm/cancel accept any of those
+three mutable states, including repeated actions and reopening a cancelled
+lesson (confirm rechecks overlaps). Update requires `lessons.manage` and
+revalidates the current candidate/instructor assignment. Completed/no-show
+records cannot be edited, confirmed or cancelled. Candidate withdrawal and
+rescheduling are not supported. There are no separate cancellation-by-role,
+rejection or moved statuses.
 
 Lesson types:
 
@@ -554,6 +567,12 @@ Request:
 Response: `201 Created` with the created lesson object. If the candidate has no
 assigned instructor, the API returns `409 Conflict`.
 
+The response uses `LessonResponse` and can echo the candidate's own submitted
+`notes`; `completionNote` is initially null. Subsequent candidate reads use
+the restricted candidate portal response, which excludes all internal notes.
+Unlike instructor reservations, this endpoint does not currently validate a
+future start on the server; the candidate UI rejects past starts.
+
 ```http
 GET /api/schools/{schoolId}/lessons/{lessonId}
 Authorization: Bearer <accessToken>
@@ -600,6 +619,9 @@ passed (server time). `note` is optional, trimmed, and limited to 2000 character
 Response: `200 OK` with the lesson object, status `COMPLETED`, server-generated
 `completedAt`, and nullable `completionNote`. Existing `notes` are preserved.
 These two additional fields are also returned by lesson list/detail endpoints.
+`notes` and `completionNote` are internal school data and are omitted from the
+candidate portal. A public feedback field is not part of the current contract.
+Completion accepts no manually entered hour count or separate lesson topic.
 
 Invalid status, early completion, or repeated completion returns `409 Conflict`;
 unauthorized school/instructor access returns `403 Forbidden`; invalid note

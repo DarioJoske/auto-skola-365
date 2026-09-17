@@ -2,7 +2,13 @@
 
 Status: Draft  
 Created: 2026-09-04  
+Last aligned with implementation: 2026-09-17 (task #2)
 Owner: Product / Engineering
+
+The [design handoff](../architecture/design-handoff.md) records the current
+lesson, hour-counting, note-visibility and account-access rules and their
+differences from the Figma blueprint. These rules take precedence over sample
+values and proposed interactions in the mockups.
 
 ## 1. Overview
 
@@ -81,8 +87,9 @@ Learns to drive and needs visibility into their progress and schedule.
 MVP involvement:
 
 - Candidate data exists in the system.
-- Candidate-facing application is designed after admin and instructor core.
-- Candidate self-service booking is not required for the first admin-core MVP.
+- Candidate portal supports login, own schedule, completed hours and profile.
+- Candidate can request a lesson with the assigned instructor; the request
+  requires confirmation and is not a confirmed booking.
 
 ## 5. MVP Scope
 
@@ -91,7 +98,7 @@ MVP involvement:
 Functional requirements:
 
 - Users can log in.
-- System supports at least admin, office staff and instructor roles.
+- System supports admin, office staff, instructor and candidate roles.
 - User access is scoped to a driving school.
 - The backend returns current user, active school membership and permissions.
 
@@ -100,6 +107,14 @@ Acceptance criteria:
 - Admin cannot access data outside their school.
 - Instructor can access only assigned candidates and own schedule.
 - Role checks are enforced in the backend, not only in the UI.
+- Admin activates candidate access by saving `loginPassword` (8–72 characters)
+  with an unused contact email. An existing account cannot be claimed by email.
+- Omitting `loginPassword` keeps the login unchanged; the admin UI sends `null`
+  for an empty field. Contact email changes do not change `loginEmail`.
+- Password changes are limited to a linked account with active candidate access
+  to this school and no membership in another school or another role.
+- Invitations, self-service password recovery and forced first-login password
+  changes are not implemented. Do not promise these flows in the current UI.
 
 ### 5.2 School And Membership Model
 
@@ -178,20 +193,34 @@ Acceptance criteria:
 Functional requirements:
 
 - Admin can create a lesson for candidate + instructor.
-- Admin can reschedule, cancel and complete a lesson.
+- Admin can reschedule, confirm and cancel a mutable lesson.
+- Only the active instructor recorded on the lesson can complete it; admin
+  permission alone does not grant completion access.
 - Lessons have start time, end time, status and optional notes.
 - Calendar can be filtered by instructor.
 - Backend prevents schedule conflicts.
 
-Initial lesson statuses:
+Current lesson statuses:
 
-- Reserved
-- Confirmed
-- Completed
-- Cancelled By Candidate
-- Cancelled By Instructor
-- No Show
-- Moved
+| API status | Croatian label | Contribution to hours |
+| --- | --- | --- |
+| `REQUESTED` | Čeka potvrdu | 0 |
+| `CONFIRMED` | Potvrđeno | 0 |
+| `COMPLETED` | Odrađeno | 1 for an eligible current-category `DRIVING` lesson |
+| `CANCELLED` | Otkazano | 0 |
+| `NO_SHOW` | Nedolazak | 0; represented in the model, no current write action |
+
+Candidate requests create `REQUESTED`; instructor reservations create
+`CONFIRMED`. Admin creation defaults to `REQUESTED` and supports `CONFIRMED`
+and `CANCELLED`. Confirm/cancel actions belong to authorized school staff or
+the instructor recorded on the lesson. Completion requires `CONFIRMED` and
+`endAt <= server time`; it records `completedAt` and locks out later changes.
+Passing the end time alone never completes a lesson.
+
+The [transition table](../architecture/design-handoff.md#statusi-i-prijelazi)
+also documents API support for reopening cancelled lessons and repeated
+confirm/cancel actions. Candidate withdrawal/rescheduling, separate cancellation
+reasons and a `MOVED` status are not implemented.
 
 Scheduling rules:
 
@@ -200,12 +229,20 @@ Scheduling rules:
 - One vehicle cannot have overlapping lessons once vehicles are enabled.
 - Lessons must belong to one school.
 - Only allowed roles can change lesson status.
+- A calendar slot is fixed at 60 minutes. The backend supplies `endAt` when
+  omitted and rejects any other duration. Figma examples of 45-minute slots
+  or 90 minutes / 2 hours do not change this rule.
+- Create/update must use the candidate's current assigned active instructor,
+  who must support the candidate's category. Candidate/instructor identities
+  for self-service reservations are derived by the backend.
+- `REQUESTED` also blocks overlaps; only `CANCELLED` frees the slot.
 
 Acceptance criteria:
 
 - Admin can manage a weekly lesson schedule.
 - Backend rejects conflicting lesson creation or rescheduling.
-- Completed lessons can later feed progress and billing.
+- Completed eligible lessons feed the current hours counter; billing remains
+  outside this scope.
 
 ### 5.6 Candidate Driving Hours
 
@@ -218,12 +255,19 @@ Functional requirements:
 - Backend counts completed DRIVING lessons for the candidate's current category.
 - Each existing 60-minute calendar slot contributes one instructional hour
   (45 minutes of teaching within the scheduled hour).
+- The backend is the only source of `completedDrivingHours`; no manual hours
+  field, client-side duration conversion or optimistic `+1`/`+2` is allowed.
+  After completion, reload the total from the backend.
 - Requested, confirmed, cancelled and no-show lessons contribute no hours.
 - Show `25/35 sati odrađeno`; retain the actual count above the target, e.g. 37/35.
 - Standard B-category target defaults to 35. Store the target per candidate and
   allow school admins to set a positive value through the candidate API.
 - Other categories have no inferred target until one is configured.
-- Keep existing general lesson and candidate notes; no assessment form is needed.
+- Keep candidate `notes`, lesson `notes` and `completionNote` internal to
+  authorized school staff/instructors. The candidate portal omits all three.
+  A candidate's reservation note is input to the school, not a public feedback
+  field. Public feedback to candidates requires a separate future API field
+  and explicit visibility rules; existing notes must never be republished.
 
 Acceptance criteria:
 
@@ -275,7 +319,7 @@ MVP screens:
 - Today schedule.
 - Upcoming lessons.
 - Candidate detail.
-- Complete lesson action with an optional general note.
+- Complete lesson action with an optional internal note (not visible to candidate).
 - Completed driving hours, for example `25/35 sati odrađeno`.
 
 ### 7.3 Candidate Application
@@ -294,8 +338,8 @@ Exams, messages, invitations and password recovery remain follow-up work.
 
 ## 8. Recommended Technical Direction
 
-- Frontend: Flutter for mobile apps; admin can start as Flutter Web/Desktop or
-  be split into a web frontend if productivity requires it.
+- Frontend: Flutter for all three applications, with the required stack in the
+  [Flutter architecture decision](../architecture/flutter-architecture.md).
 - Backend: Java Spring Boot API service.
 - Database: PostgreSQL.
 - Auth: backend-owned auth with role-based access control.
@@ -324,9 +368,10 @@ Exams, messages, invitations and password recovery remain follow-up work.
 
 ## 10. Open Questions
 
-- Should the admin app be Flutter Web/Desktop from day one, or a separate web
-  frontend?
-- Should candidate self-booking be included in MVP or Beta?
+- Should a future release support other durations or multiple instructional
+  hours per lesson? Until explicitly decided and documented, keep 60 minutes / 1 hour.
+- What separate public-feedback, invitation and password-recovery contracts
+  should a future release introduce? Current internal notes and access rules remain.
 - Is the first target one driving school or multi-school SaaS from day one?
 - Which driving categories must be supported in the first production version?
 - Are payments and invoices only internal tracking or legally/fiscally relevant?
