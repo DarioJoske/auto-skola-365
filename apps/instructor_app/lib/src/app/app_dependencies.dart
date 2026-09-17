@@ -1,8 +1,8 @@
+import '../features/schedule/domain/usecases/reserve_instructor_lesson.dart';
 import '../features/progress/data/datasources/progress_remote_data_source.dart';
 import '../features/progress/data/repositories/progress_repository_impl.dart';
 import '../features/progress/domain/repositories/progress_repository.dart';
 import '../features/progress/domain/usecases/load_progress.dart';
-import '../features/progress/domain/usecases/save_progress.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 
@@ -71,6 +71,9 @@ void configureDependencies() {
         getIt<InstructorLessonsRemoteDataSource>(),
       ),
     )
+    ..registerLazySingleton<ReserveInstructorLesson>(
+      () => ReserveInstructorLesson(getIt<InstructorLessonsRepository>()),
+    )
     ..registerLazySingleton<ListInstructorLessons>(
       () => ListInstructorLessons(getIt<InstructorLessonsRepository>()),
     )
@@ -105,9 +108,6 @@ void configureDependencies() {
     )
     ..registerLazySingleton<LoadProgress>(
       () => LoadProgress(getIt<ProgressRepository>()),
-    )
-    ..registerLazySingleton<SaveProgress>(
-      () => SaveProgress(getIt<ProgressRepository>()),
     )
     ..registerLazySingleton<AuthCubit>(
       () => AuthCubit(

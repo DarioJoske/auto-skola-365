@@ -11,6 +11,8 @@ class UpdateCandidateModel {
     required this.categoryCode,
     required this.assignedInstructorId,
     required this.notes,
+    this.requiredDrivingHours,
+    this.loginPassword,
   });
 
   factory UpdateCandidateModel.fromEntity(UpdateCandidate candidate) {
@@ -24,6 +26,8 @@ class UpdateCandidateModel {
       categoryCode: candidate.categoryCode,
       assignedInstructorId: candidate.assignedInstructorId,
       notes: candidate.notes,
+      requiredDrivingHours: candidate.requiredDrivingHours,
+      loginPassword: candidate.loginPassword,
     );
   }
 
@@ -36,6 +40,8 @@ class UpdateCandidateModel {
   final String categoryCode;
   final String? assignedInstructorId;
   final String? notes;
+  final int? requiredDrivingHours;
+  final String? loginPassword;
 
   Map<String, dynamic> toJson() {
     return {
@@ -48,6 +54,8 @@ class UpdateCandidateModel {
       'categoryCode': categoryCode,
       'assignedInstructorId': assignedInstructorId,
       'notes': notes,
+      'requiredDrivingHours': requiredDrivingHours,
+      if (loginPassword != null) 'loginPassword': loginPassword,
     };
   }
 }

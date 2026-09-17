@@ -1,3 +1,7 @@
+import '../../../candidates/domain/usecases/list_instructor_candidates.dart';
+import '../../domain/usecases/reserve_instructor_lesson.dart';
+import '../cubit/reservation_cubit.dart';
+import '../widgets/reservation_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -122,6 +126,41 @@ class _ScheduleViewState extends State<ScheduleView> {
     super.dispose();
   }
 
+  Future<void> _reserve(BuildContext context, DateTime date) async {
+    final auth = context.read<AuthCubit>();
+    final membership = auth.state.instructorMembership;
+    final token = auth.state.accessToken;
+    if (membership == null || token == null) return;
+    final cubit = ReservationCubit(
+      listCandidates: getIt<ListInstructorCandidates>(),
+      reserveLesson: getIt<ReserveInstructorLesson>(),
+      schoolId: membership.schoolId,
+      accessToken: token,
+    );
+    cubit.load();
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => BlocProvider.value(
+        value: cubit,
+        child: ReservationDialog(initialDate: date),
+      ),
+    );
+    final expired =
+        (cubit.state.saveFailure ?? cubit.state.loadFailure)?.statusCode == 401;
+    await cubit.close();
+    if (expired) {
+      await auth.logout();
+      return;
+    }
+    if (saved == true && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Termin je rezerviran.')));
+      await context.read<ScheduleCubit>().load();
+    }
+  }
+
   Future<void> _pickDate(BuildContext context, DateTime selectedDate) async {
     final picked = await showDatePicker(
       context: context,
@@ -185,6 +224,16 @@ class _ScheduleViewState extends State<ScheduleView> {
                               _pickDate(context, state.selectedDate),
                         ),
                         const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: FilledButton.icon(
+                            onPressed: () =>
+                                _reserve(context, state.selectedDate),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Rezerviraj termin'),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         _ScheduleFilters(
                           status: state.filters.status,
                           rangeMode: state.rangeMode,

@@ -391,7 +391,7 @@ class _CandidateCard extends StatelessWidget {
               onPressed: () =>
                   context.push('/candidates/${candidate.id}/progress'),
               icon: const Icon(Icons.trending_up),
-              label: const Text('Pregled napretka'),
+              label: const Text('Odrađeni sati'),
             ),
             const SizedBox(height: 12),
             Wrap(

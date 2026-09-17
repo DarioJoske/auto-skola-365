@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../candidates/domain/entities/candidate.dart';
 import '../../../candidates/domain/usecases/list_candidates.dart';
 import '../../../instructors/domain/entities/instructor.dart';
 import '../../../instructors/domain/usecases/list_instructors.dart';
@@ -119,7 +118,10 @@ class _LessonsViewState extends State<LessonsView> {
   }
 
   Future<void> _openCreateDialog(BuildContext context, DateTime startAt) async {
-    final state = context.read<LessonsCubit>().state;
+    final cubit = context.read<LessonsCubit>();
+    await cubit.load();
+    if (!context.mounted || cubit.state.status == LessonsStatus.failure) return;
+    final state = cubit.state;
     if (state.candidates.isEmpty || state.instructors.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -133,7 +135,7 @@ class _LessonsViewState extends State<LessonsView> {
       context: context,
       builder: (_) => BlocProvider.value(
         value: context.read<LessonsCubit>(),
-        child: _LessonDialog(initialStartAt: startAt),
+        child: LessonDialog(initialStartAt: startAt),
       ),
     );
 
@@ -143,11 +145,14 @@ class _LessonsViewState extends State<LessonsView> {
   }
 
   Future<void> _openEditDialog(BuildContext context, Lesson lesson) async {
+    final cubit = context.read<LessonsCubit>();
+    await cubit.load();
+    if (!context.mounted || cubit.state.status == LessonsStatus.failure) return;
     final updated = await showDialog<bool>(
       context: context,
       builder: (_) => BlocProvider.value(
         value: context.read<LessonsCubit>(),
-        child: _LessonDialog(lesson: lesson),
+        child: LessonDialog(lesson: lesson),
       ),
     );
 
@@ -404,17 +409,17 @@ class _LessonsViewState extends State<LessonsView> {
   }
 }
 
-class _LessonDialog extends StatefulWidget {
-  const _LessonDialog({this.lesson, this.initialStartAt});
+class LessonDialog extends StatefulWidget {
+  const LessonDialog({this.lesson, this.initialStartAt, super.key});
 
   final Lesson? lesson;
   final DateTime? initialStartAt;
 
   @override
-  State<_LessonDialog> createState() => _LessonDialogState();
+  State<LessonDialog> createState() => _LessonDialogState();
 }
 
-class _LessonDialogState extends State<_LessonDialog> {
+class _LessonDialogState extends State<LessonDialog> {
   final _formKey = GlobalKey<FormState>();
   final _notesController = TextEditingController();
 
@@ -485,18 +490,6 @@ class _LessonDialogState extends State<_LessonDialog> {
     });
   }
 
-  void _candidateChanged(String? candidateId, LessonsState state) {
-    final candidate = state.candidates
-        .where((candidate) => candidate.id == candidateId)
-        .firstOrNull;
-    setState(() {
-      _candidateId = candidateId;
-      if (candidate?.assignedInstructorId != null) {
-        _instructorId = candidate!.assignedInstructorId;
-      }
-    });
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -534,10 +527,17 @@ class _LessonDialogState extends State<_LessonDialog> {
   Widget build(BuildContext context) {
     return BlocBuilder<LessonsCubit, LessonsState>(
       builder: (context, state) {
-        _candidateId ??= state.candidates.firstOrNull?.id;
-        _instructorId ??=
-            _selectedCandidate(state)?.assignedInstructorId ??
-            state.instructors.firstOrNull?.id;
+        final candidates = state.candidates
+            .where(
+              (candidate) =>
+                  _instructorId != null &&
+                  candidate.assignedInstructorId == _instructorId,
+            )
+            .toList();
+        final selectedCandidate =
+            candidates.any((candidate) => candidate.id == _candidateId)
+            ? _candidateId
+            : null;
 
         return AlertDialog(
           title: Text(_isEditing ? 'Uredi termin' : 'Novi termin'),
@@ -550,22 +550,10 @@ class _LessonDialogState extends State<_LessonDialog> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      initialValue: _candidateId,
-                      decoration: const InputDecoration(labelText: 'Kandidat'),
-                      items: state.candidates
-                          .map(
-                            (candidate) => DropdownMenuItem(
-                              value: candidate.id,
-                              child: Text(candidate.fullName),
-                            ),
-                          )
-                          .toList(),
-                      validator: _required,
-                      onChanged: (value) => _candidateChanged(value, state),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: _instructorId,
+                      initialValue:
+                          state.instructors.any((i) => i.id == _instructorId)
+                          ? _instructorId
+                          : null,
                       decoration: const InputDecoration(
                         labelText: 'Instruktor',
                       ),
@@ -578,10 +566,37 @@ class _LessonDialogState extends State<_LessonDialog> {
                           )
                           .toList(),
                       validator: _required,
-                      onChanged: (value) => setState(() {
-                        _instructorId = value;
-                      }),
+                      onChanged: state.isSubmitting
+                          ? null
+                          : (value) => setState(() {
+                              _instructorId = value;
+                              _candidateId = null;
+                            }),
                     ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      key: ValueKey('$_instructorId:$selectedCandidate'),
+                      initialValue: selectedCandidate,
+                      decoration: const InputDecoration(labelText: 'Kandidat'),
+                      items: candidates
+                          .map(
+                            (candidate) => DropdownMenuItem(
+                              value: candidate.id,
+                              child: Text(candidate.fullName),
+                            ),
+                          )
+                          .toList(),
+                      validator: _required,
+                      onChanged: state.isSubmitting || candidates.isEmpty
+                          ? null
+                          : (value) => setState(() => _candidateId = value),
+                    ),
+                    if (_instructorId == null)
+                      const Text('Prvo odaberite instruktora.')
+                    else if (candidates.isEmpty)
+                      const Text(
+                        'Odabrani instruktor nema dodijeljenih kandidata.',
+                      ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: _status,
@@ -668,12 +683,6 @@ class _LessonDialogState extends State<_LessonDialog> {
         );
       },
     );
-  }
-
-  Candidate? _selectedCandidate(LessonsState state) {
-    return state.candidates
-        .where((candidate) => candidate.id == _candidateId)
-        .firstOrNull;
   }
 }
 

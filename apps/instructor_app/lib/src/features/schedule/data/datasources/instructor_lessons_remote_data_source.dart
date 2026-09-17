@@ -1,3 +1,4 @@
+import '../models/reserve_lesson_model.dart';
 import '../../../../core/api/api_client.dart';
 import '../../domain/entities/instructor_lesson_filters.dart';
 import '../models/instructor_lesson_model.dart';
@@ -6,6 +7,21 @@ class InstructorLessonsRemoteDataSource {
   const InstructorLessonsRemoteDataSource(this._apiClient);
 
   final ApiClient _apiClient;
+
+  Future<InstructorLessonModel> reserve({
+    required String schoolId,
+    required String accessToken,
+    required ReserveLessonModel reservation,
+  }) async {
+    final json =
+        await _apiClient.postJson(
+              '/api/schools/$schoolId/lessons/instructor/reservations',
+              accessToken: accessToken,
+              body: reservation.toJson(),
+            )
+            as Map<String, dynamic>;
+    return InstructorLessonModel.fromJson(json);
+  }
 
   Future<List<InstructorLessonModel>> list({
     required String schoolId,

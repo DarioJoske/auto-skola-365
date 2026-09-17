@@ -1,64 +1,64 @@
 # MVP — stanje razvoja i nastavak
 
-Ažurirano: 2026-09-15. Razvoj je zaustavljen na zahtjev korisnika nakon koraka 3.
-Pri nastavku odraditi samo jedan korak, stati i dati kratki review korisniku.
-Ne prelaziti automatski na sljedeći korak.
+Ažurirano: 2026-09-17. Ovaj pregled opisuje kod pripremljen za novi PR prema
+`main`. Poslovna pravila nalaze se u [MVP specifikaciji](mvp-product-spec.md), a
+ugovori endpointa u [API dokumentaciji](../architecture/api.md).
 
 ## Dovršeno u kodu
 
-- Instruktorski raspored, detalji termina, potvrda i otkazivanje te popis dodijeljenih kandidata.
-- Stabilizacija učitavanja: zaštita od zakašnjelih odgovora i odgovora nakon zatvaranja ekrana.
-- Zaštita od ponovljenih radnji i ažuriranje filtriranog rasporeda nakon promjene statusa.
-- Korak 2: završavanje vlastitog potvrđenog sata nakon isteka termina, neobavezna bilješka i vrijeme evidentiranja.
-- Završeni sat zaštićen je od ponovnog završavanja, uređivanja i otkazivanja.
-- Korak 3: deset vještina B kategorije, pet razina procjene, unos/ispravak procjena uz odrađeni sat.
-- Instruktorski pregled posljednjih procjena i povijesti po satima.
-- Redoslijed napretka određuje datum sata, a ne vrijeme naknadnog ispravka.
-- Backend ovlasti, API dokumentacija i regresijski testovi za navedene funkcionalnosti.
+- Admin upravlja kandidatima i instruktorima, dodjeljuje instruktora te rezervira
+  termine uz filtriranje kandidata prema odabranom instruktoru.
+- Instruktor pregledava vlastiti raspored, detalje i dodijeljene kandidate,
+  rezervira vožnju, potvrđuje zahtjev, otkazuje i završava vlastiti odrađeni sat.
+- Završavanje je dopušteno nakon isteka potvrđenog termina, uz neobaveznu bilješku
+  i vrijeme evidentiranja. Završeni sat nije moguće ponovno završiti ili mijenjati.
+- Evidencija odrađenih sati zamijenila je raniji unos procjena po vještinama.
+  Admin, instruktor i kandidat vide broj završenih vožnji u aktualnoj kategoriji.
+  Jedan završeni termin od 60 minuta vrijedi jedan nastavni sat; zadani cilj za
+  B kategoriju je 35, a admin može postaviti pozitivan individualni cilj.
+- Kandidatska aplikacija ima prijavu, početni pregled, termine, zahtjev za vožnju,
+  profil i odjavu. Backend izvodi identitet kandidata iz prijavljenog korisnika i
+  vraća samo njegove podatke, bez internih bilješki.
+- Admin aktivira pristup novom kandidatskom računu početnom lozinkom i može
+  promijeniti lozinku povezanog kandidatskog računa svoje škole. Postojeći račun
+  ne preuzima se prema email adresi; kontaktni email ostaje odvojen od prijavnog.
+- Zajednički paket `packages/design_system` sadrži temu, boje, tipografiju,
+  razmake i osnovne komponente. Sve tri aplikacije koriste zajedničku temu.
+- Melos provjerava formatiranje, analizu i testove sva četiri Flutter paketa.
+- Asinkroni tokovi imaju regresijske testove za pogreške, ponovljene radnje,
+  zakašnjele odgovore i zatvaranje ekrana.
 
-Posljednje uspješne provjere: 15 Flutter testova instruktorske aplikacije,
-13 backend testova, analiza admin i instruktorske aplikacije te backend package.
-Backend testovi koriste H2 i ne pokreću Flyway migracije.
+## Provjere ovog PR-a
 
-## Prvi sljedeći korak
+- `dart run melos run check`: formatiranje i analiza bez nalaza; 74 testa prolaze
+  (admin 18, kandidat 20, instruktor 34, design system 2).
+- `mvn test`: 15 testova prolazi. Integracijski testovi koriste H2, bez Flywaya.
+- `mvn -DskipTests package`: uspješna izrada backend paketa.
+- `dart run melos run build:web`: uspješan admin web build; alat prijavljuje
+  upozorenje o nedostajućoj CupertinoIcons font obitelji.
+- Pokretanje sastavljenog backenda na zasebnom privremenom PostgreSQL-u 16:
+  svih 12 Flyway migracija uspješno primijenjeno na praznu bazu, Hibernate
+  validacija sheme i podizanje aplikacije uspješni. Razvojna baza nije mijenjana.
 
-- [ ] Admin profil kandidata: prikaz posljednjih procjena po vještinama i povijesti sati.
-- [ ] Prikaz odrađenih sati, bilješki nakon vožnje i instruktorskih procjena u profilu.
-- [ ] Povezati s postojećim API-jem za napredak; uvesti potrebne admin domenske modele,
-      repozitorije, use caseove i Cubit, uz postojeća arhitekturna pravila.
-- [ ] Testirati, stati i dati kratak review.
+## Preostali rad
 
-## Preostalo do prezentacijskog MVP-a
+1. Postupno implementirati prošireni Figma design system i ekrane kroz
+   [GitHub Project](https://github.com/users/DarioJoske/projects/2). Postojeći
+   Flutter paket s osnovnim komponentama još ne pokriva cijelu Figma biblioteku.
+2. Dovršiti početni admin pregled s pravim podacima i dodatne funkcionalnosti
+   specificirane zasebnim zadacima.
+3. Ručno proći povezani tijek: admin aktivira kandidata i dodijeli instruktora →
+   kandidat zatraži termin → instruktor potvrdi i završi sat → svi vide novi zbroj.
+4. Provjeriti mobilne buildove i ponašanje na stvarnim Android/iOS uređajima.
+5. Pripremiti stabilno demo okruženje s HTTPS-om, izmišljenim podacima i računima
+   za sve tri uloge te jednostavno vraćanje demo podataka.
 
-1. Početni pregled s pravim podacima: današnji termini, aktivni kandidati i termini za potvrdu.
-2. Proći osnovne admin tijekove: upis/uređivanje/pretraga kandidata, dodjela instruktora,
-   upravljanje instruktorima te kreiranje i premještanje termina uz zabranu preklapanja.
-3. Doraditi sučelja: hrvatski nazivi i dijakritika, prikaz datuma/vremena, validacija,
-   prazna stanja, učitavanje, pogreške i osvježavanje nakon promjena.
-4. Provjeriti korištenje admin aplikacije na računalu i instruktorske na mobitelu.
-5. Proći cijeli tijek kroz oba sučelja: admin zakazuje → instruktor završava sat i
-   procjenjuje vještine → admin vidi rezultat.
-6. Potvrditi odvajanje škola i ovlasti, istek prijave, nedostupan backend, trajnost podataka
-   nakon osvježavanja/ponovne prijave te konflikte pri kreiranju i premještanju termina.
-7. Pripremiti stabilno demo okruženje s HTTPS-om, izmišljenim podacima, odvojenim računima
-   admina/instruktora i jednostavnim vraćanjem demo podataka.
-8. Pripremiti desetominutni demo scenarij, termine za dan prezentacije i rezervnu snimku.
+## Ograničenja
 
-## Neprovjereno / ograničenja
-
-- [ ] Primijeniti i provjeriti V10__lesson_completion.sql i V11__lesson_progress.sql na PostgreSQL-u.
-      Migracije se primjenjuju pri pokretanju novog backenda; nisu potvrđene ovim testovima.
-- [ ] Ručno provjeriti cijeli tijek u aplikacijama povezanima na backend.
-- Predložak napretka trenutačno podržava samo B kategoriju.
-- Povijest procjena je po satima; ispravci iste procjene nemaju zaseban audit zapis.
-- Prikaz napretka u admin aplikaciji još nije implementiran.
-
-## Izvan prvog prezentacijskog MVP-a
-
-Kandidatska aplikacija, chat, push obavijesti, plaćanja, dokumenti, napredna analitika
-te puni SuperAdmin mogu pričekati. Za demo je dovoljno kontrolirano kreiranje škole
-s početnim računima.
-
-Prije pilota sa stvarnom autoškolom dodatno pripremiti obnovu pristupa, upravljanje
-korisnicima, sigurnosne kopije i probu vraćanja, nadzor pogrešaka te pravila
-postupanja s osobnim podacima.
+- Pozivnice, samostalni oporavak lozinke, chat, push obavijesti, ispiti, plaćanja,
+  dokumenti i napredna analitika ostaju zaseban planirani rad.
+- Broj odrađenih sati nije procjena spremnosti za ispit.
+- Povijesna migracija za procjene vještina i postojeći podaci ostaju sačuvani;
+  trenutačni API i sučelja više ne nude unos tih procjena.
+- Prije pilota treba urediti produkcijsko kreiranje škola, obnovu pristupa,
+  sigurnosne kopije i probu vraćanja, nadzor te postupanje s osobnim podacima.

@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/app_dependencies.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../../progress/domain/usecases/load_progress.dart';
+import '../../../progress/presentation/bloc/progress_cubit.dart';
+import '../../../progress/presentation/widgets/driving_hours_panel.dart';
 import '../../domain/entities/instructor_lesson.dart';
 import '../../domain/usecases/cancel_instructor_lesson.dart';
 import '../../domain/usecases/confirm_instructor_lesson.dart';
@@ -56,16 +59,29 @@ class LessonDetailPage extends StatelessWidget {
           );
         }
 
-        return BlocProvider(
-          create: (_) => LessonDetailCubit(
-            completeInstructorLesson: getIt<CompleteInstructorLesson>(),
-            getInstructorLesson: getIt<GetInstructorLesson>(),
-            confirmInstructorLesson: getIt<ConfirmInstructorLesson>(),
-            cancelInstructorLesson: getIt<CancelInstructorLesson>(),
-            schoolId: membership.schoolId,
-            accessToken: accessToken,
-            lessonId: lessonId,
-          )..load(),
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) => ProgressCubit(
+                loadProgress: getIt<LoadProgress>(),
+                schoolId: membership.schoolId,
+                accessToken: accessToken,
+                resource: 'lessons',
+                id: lessonId,
+              )..load(),
+            ),
+            BlocProvider(
+              create: (_) => LessonDetailCubit(
+                completeInstructorLesson: getIt<CompleteInstructorLesson>(),
+                getInstructorLesson: getIt<GetInstructorLesson>(),
+                confirmInstructorLesson: getIt<ConfirmInstructorLesson>(),
+                cancelInstructorLesson: getIt<CancelInstructorLesson>(),
+                schoolId: membership.schoolId,
+                accessToken: accessToken,
+                lessonId: lessonId,
+              )..load(),
+            ),
+          ],
           child: const LessonDetailView(),
         );
       },
@@ -85,7 +101,12 @@ class LessonDetailView extends StatelessWidget {
           (previous.successEventId != current.successEventId &&
               current.successMessage != null),
       listener: (context, state) {
-        final message = state.successMessage ?? state.errorMessage;
+        if (state.successMessage != null) {
+          context.read<ProgressCubit>().load();
+        }
+        final message = state.errorStatusCode == 401
+            ? 'Sesija je istekla. Prijavite se ponovno.'
+            : state.successMessage ?? state.errorMessage;
         if (message == null) {
           return;
         }
@@ -106,7 +127,10 @@ class LessonDetailView extends StatelessWidget {
             children: [
               _DetailHeader(
                 onBack: () => context.pop(),
-                onRefresh: () => context.read<LessonDetailCubit>().load(),
+                onRefresh: () {
+                  context.read<LessonDetailCubit>().load();
+                  context.read<ProgressCubit>().load();
+                },
               ),
               const SizedBox(height: 16),
               if (state.status == LessonDetailStatus.failure)
@@ -124,6 +148,8 @@ class LessonDetailView extends StatelessWidget {
                 const SizedBox(height: 12),
                 _LessonActionsCard(lesson: lesson, state: state),
                 const SizedBox(height: 12),
+                const DrivingHoursPanel(),
+                const SizedBox(height: 12),
                 _LessonNotesCard(lesson: lesson),
                 if (lesson.status == 'CONFIRMED') ...[
                   const SizedBox(height: 16),
@@ -133,12 +159,6 @@ class LessonDetailView extends StatelessWidget {
                   ),
                 ],
                 if (lesson.status == 'COMPLETED') ...[
-                  FilledButton.tonalIcon(
-                    onPressed: () =>
-                        context.push('/lessons/${lesson.id}/progress'),
-                    icon: const Icon(Icons.trending_up),
-                    label: const Text('Procijeni napredak'),
-                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Bilješka nakon vožnje',
@@ -561,7 +581,7 @@ class _CompleteLessonFormState extends State<_CompleteLessonForm> {
             maxLength: 2000,
             decoration: const InputDecoration(
               labelText: 'Bilješka nakon vožnje (neobavezno)',
-              hintText: 'Što ste vježbali i na čemu treba još raditi?',
+              hintText: 'Dodatna napomena o vožnji',
               border: OutlineInputBorder(),
             ),
             validator: (value) => (value?.length ?? 0) > 2000
@@ -580,7 +600,7 @@ class _CompleteLessonFormState extends State<_CompleteLessonForm> {
                     }
                   },
             icon: const Icon(Icons.task_alt),
-            label: Text(widget.busy ? 'Spremanje…' : 'Završi sat'),
+            label: Text(widget.busy ? 'Spremanje…' : 'Dovrši vožnju'),
           ),
           if (!hasEnded)
             const Text(

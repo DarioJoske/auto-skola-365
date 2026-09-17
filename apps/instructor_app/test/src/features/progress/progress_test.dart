@@ -1,180 +1,264 @@
 import 'dart:async';
+
+import 'package:auto_skola_365_instructor_app/src/core/api/failure.dart';
+import 'package:auto_skola_365_instructor_app/src/core/api/result.dart';
+import 'package:auto_skola_365_instructor_app/src/features/progress/data/models/progress_model.dart';
+import 'package:auto_skola_365_instructor_app/src/features/progress/domain/entities/candidate_progress.dart';
+import 'package:auto_skola_365_instructor_app/src/features/progress/domain/repositories/progress_repository.dart';
+import 'package:auto_skola_365_instructor_app/src/features/progress/domain/usecases/load_progress.dart';
+import 'package:auto_skola_365_instructor_app/src/features/progress/presentation/bloc/progress_cubit.dart';
+import 'package:auto_skola_365_instructor_app/src/features/progress/presentation/pages/progress_page.dart';
+import 'package:bloc_test/bloc_test.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:auto_skola_365_instructor_app/src/core/api/failure.dart';
-import 'package:auto_skola_365_instructor_app/src/core/api/result.dart';
-import 'package:auto_skola_365_instructor_app/src/features/progress/domain/entities/candidate_progress.dart';
-import 'package:auto_skola_365_instructor_app/src/features/progress/domain/repositories/progress_repository.dart';
-import 'package:auto_skola_365_instructor_app/src/features/progress/domain/usecases/load_progress.dart';
-import 'package:auto_skola_365_instructor_app/src/features/progress/domain/usecases/save_progress.dart';
-import 'package:auto_skola_365_instructor_app/src/features/progress/presentation/bloc/progress_cubit.dart';
-import 'package:auto_skola_365_instructor_app/src/features/progress/presentation/pages/progress_page.dart';
 
-ProgressEntry entry(String lesson, String status, int day, int recordedDay) =>
-    ProgressEntry(
-      lessonId: lesson,
-      lessonEndAt: DateTime(2026, 9, day),
-      skill: 'PARKING',
-      status: status,
-      recordedAt: DateTime(2026, 9, recordedDay),
-    );
-CandidateProgress data({
-  bool editable = true,
-  List<ProgressEntry> entries = const [],
-}) => CandidateProgress(
-  candidateName: 'Ana',
+CandidateProgress hours(int count, {int? target = 35}) => CandidateProgress(
+  candidateId: 'candidate',
+  candidateName: 'Ana Anić',
   categoryCode: 'B',
-  lessonId: 'lesson',
-  editable: editable,
-  skills: const [
-    ProgressOption('PARKING', 'Parkiranje'),
-    ProgressOption('REVERSING', 'Vožnja unatrag'),
-  ],
-  statuses: const [
-    ProgressOption('NEEDS_PRACTICE', 'Potrebna vježba'),
-    ProgressOption('MASTERED', 'Savladano'),
-  ],
-  entries: entries,
+  completedDrivingHours: count,
+  requiredDrivingHours: target,
 );
 
-class Repository extends Fake implements ProgressRepository {
-  CandidateProgress value = data();
-  Failure? loadFailure;
-  int saves = 0;
-  Map<String, String>? sent;
-  var result = Completer<Either<Failure, CandidateProgress>>();
+class HoursRepository extends Fake implements ProgressRepository {
+  CandidateProgress value = hours(25);
+  Failure? failure;
+  FutureEither<CandidateProgress> Function()? onLoad;
+
   @override
   FutureEither<CandidateProgress> load({
     required String schoolId,
     required String accessToken,
     required String resource,
     required String id,
-  }) async => loadFailure == null ? Right(value) : Left(loadFailure!);
-  @override
-  FutureEither<CandidateProgress> save({
-    required String schoolId,
-    required String accessToken,
-    required String lessonId,
-    required Map<String, String> assessments,
-  }) {
-    saves++;
-    sent = assessments;
-    return result.future;
-  }
+  }) =>
+      onLoad?.call() ??
+      Future.value(failure == null ? Right(value) : Left(failure!));
 }
 
-ProgressCubit cubit(Repository repo) => ProgressCubit(
-  loadProgress: LoadProgress(repo),
-  saveProgress: SaveProgress(repo),
+ProgressCubit hoursCubit(HoursRepository repository) => ProgressCubit(
+  loadProgress: LoadProgress(repository),
   schoolId: 'school',
   accessToken: 'token',
-  resource: 'lessons',
-  id: 'lesson',
+  resource: 'candidates',
+  id: 'candidate',
 );
+
 void main() {
-  test('latest assessment uses lesson date instead of time of correction', () {
-    final progress = data(
-      entries: [
-        entry('old', 'NEEDS_PRACTICE', 1, 15),
-        entry('new', 'MASTERED', 10, 10),
+  late HoursRepository repository;
+  setUp(() => repository = HoursRepository());
+
+  test(
+    'initial state has no fabricated hours and no pending request',
+    () async {
+      final cubit = hoursCubit(repository);
+      expect(cubit.state.data, isNull);
+      expect(cubit.state.loading, isFalse);
+      expect(cubit.state.loadFailure, isNull);
+      await cubit.close();
+    },
+  );
+
+  test('API model accepts hour totals without any assessment fields', () {
+    final result = ProgressModel.fromJson({
+      'candidateId': 'candidate',
+      'candidateName': 'Ana Anić',
+      'categoryCode': 'B',
+      'completedDrivingHours': 25,
+      'requiredDrivingHours': 35,
+    }).toEntity();
+    expect(result.completedDrivingHours, 25);
+    expect(result.requiredDrivingHours, 35);
+  });
+
+  blocTest<ProgressCubit, ProgressState>(
+    'loads the backend total after the loading state',
+    build: () => hoursCubit(repository),
+    act: (cubit) => cubit.load(),
+    expect: () => [
+      isA<ProgressState>().having((s) => s.loading, 'loading', true),
+      isA<ProgressState>()
+          .having((s) => s.loading, 'loading', false)
+          .having((s) => s.data?.completedDrivingHours, 'hours', 25),
+    ],
+  );
+
+  blocTest<ProgressCubit, ProgressState>(
+    'load failure preserves backend details and retry loads the hours',
+    build: () {
+      repository.failure = const Failure(
+        'Usluga nije dostupna.',
+        statusCode: 503,
+        code: 'UNAVAILABLE',
+      );
+      return hoursCubit(repository);
+    },
+    act: (cubit) async {
+      await cubit.load();
+      repository.failure = null;
+      await cubit.load();
+    },
+    expect: () => [
+      isA<ProgressState>().having((s) => s.loading, 'loading', true),
+      isA<ProgressState>()
+          .having((s) => s.loadFailure?.code, 'code', 'UNAVAILABLE')
+          .having((s) => s.loadFailure?.statusCode, 'status', 503),
+      isA<ProgressState>().having((s) => s.loading, 'loading', true),
+      isA<ProgressState>()
+          .having((s) => s.data?.completedDrivingHours, 'hours', 25)
+          .having((s) => s.loadFailure, 'failure', isNull),
+    ],
+  );
+
+  blocTest<ProgressCubit, ProgressState>(
+    'refresh keeps known hours while loading and on recoverable failure',
+    build: () => hoursCubit(repository),
+    seed: () => ProgressState(data: hours(25)),
+    act: (cubit) async {
+      repository.failure = const Failure('Pokušajte ponovno.', statusCode: 503);
+      await cubit.load();
+    },
+    expect: () => [
+      isA<ProgressState>()
+          .having((s) => s.loading, 'loading', true)
+          .having((s) => s.data?.completedDrivingHours, 'hours', 25),
+      isA<ProgressState>()
+          .having((s) => s.data?.completedDrivingHours, 'hours', 25)
+          .having(
+            (s) => s.loadFailure?.message,
+            'failure',
+            'Pokušajte ponovno.',
+          ),
+    ],
+  );
+
+  blocTest<ProgressCubit, ProgressState>(
+    'a stale response cannot replace refreshed hours after completion',
+    build: () => hoursCubit(repository),
+    act: (cubit) async {
+      final old = Completer<Either<Failure, CandidateProgress>>();
+      repository.onLoad = () => old.future;
+      final pending = cubit.load();
+      repository.onLoad = () async => Right(hours(26));
+      await cubit.load();
+      old.complete(Right(hours(25)));
+      await pending;
+    },
+    expect: () => [
+      isA<ProgressState>().having((s) => s.loading, 'loading', true),
+      isA<ProgressState>().having((s) => s.loading, 'loading', true),
+      isA<ProgressState>().having(
+        (s) => s.data?.completedDrivingHours,
+        'hours',
+        26,
+      ),
+    ],
+  );
+
+  for (final status in [401, 403]) {
+    blocTest<ProgressCubit, ProgressState>(
+      'revoked access ($status) clears previously displayed candidate data',
+      build: () => hoursCubit(repository),
+      seed: () => ProgressState(data: hours(25)),
+      act: (cubit) async {
+        repository.failure = Failure('Nema pristupa.', statusCode: status);
+        await cubit.load();
+      },
+      expect: () => [
+        isA<ProgressState>().having((s) => s.loading, 'loading', true),
+        isA<ProgressState>()
+            .having((s) => s.data, 'data', isNull)
+            .having((s) => s.loadFailure?.statusCode, 'status', status),
       ],
     );
-    expect(progress.latest('PARKING')!.status, 'MASTERED');
-    expect(progress.latest('REVERSING'), isNull);
-    expect(progress.lessonAssessments, isEmpty);
+  }
+
+  test('leaving the screen ignores an outstanding response', () async {
+    final pending = Completer<Either<Failure, CandidateProgress>>();
+    repository.onLoad = () => pending.future;
+    final cubit = hoursCubit(repository);
+    final load = cubit.load();
+    await cubit.close();
+    pending.complete(Right(hours(25)));
+    await expectLater(load, completes);
   });
-  test(
-    'load preselects only this lesson and read-only access prevents writes',
-    () async {
-      final repo = Repository()
-        ..value = data(
-          editable: false,
-          entries: [entry('lesson', 'MASTERED', 1, 1)],
-        );
-      final state = cubit(repo);
-      await state.load();
-      expect(state.state.draft, {'PARKING': 'MASTERED'});
-      state.select('PARKING', 'NEEDS_PRACTICE');
-      await state.save();
-      expect(repo.saves, 0);
-      expect(state.state.draft, {'PARKING': 'MASTERED'});
-      await state.close();
-    },
-  );
-  test(
-    'mutation sends only selected skills, prevents duplicates, and preserves failed draft',
-    () async {
-      final repo = Repository();
-      final state = cubit(repo);
-      await state.load();
-      state.select('PARKING', 'NEEDS_PRACTICE');
-      final pending = state.save();
-      await state.save();
-      expect(repo.saves, 1);
-      expect(repo.sent, {'PARKING': 'NEEDS_PRACTICE'});
-      repo.result.complete(
-        const Left(Failure('Zabranjeno.', statusCode: 403, code: 'FORBIDDEN')),
+
+  for (final count in [0, 25, 35, 37]) {
+    testWidgets('shows $count/35 hours with no skill assessment controls', (
+      tester,
+    ) async {
+      repository.value = hours(count);
+      final cubit = hoursCubit(repository);
+      await cubit.load();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlocProvider.value(value: cubit, child: const ProgressView()),
+          ),
+        ),
       );
-      await pending;
-      expect(state.state.draft, {'PARKING': 'NEEDS_PRACTICE'});
-      expect(state.state.actionFailure!.code, 'FORBIDDEN');
-      expect(state.state.saving, isFalse);
-      await state.close();
-    },
-  );
-  test('load error is visible and retry succeeds', () async {
-    final repo = Repository()
-      ..loadFailure = const Failure('Nedostupno.', statusCode: 503);
-    final state = cubit(repo);
-    await state.load();
-    expect(state.state.loadFailure!.message, 'Nedostupno.');
-    repo.loadFailure = null;
-    await state.load();
-    expect(state.state.data, isNotNull);
-    expect(state.state.loadFailure, isNull);
-    await state.close();
-  });
-  test('late save after leaving screen is ignored', () async {
-    final repo = Repository();
-    final state = cubit(repo);
-    await state.load();
-    state.select('PARKING', 'MASTERED');
-    final pending = state.save();
-    await state.close();
-    repo.result.complete(Right(data()));
-    await expectLater(pending, completes);
-  });
-  testWidgets('instructor selects a skill and sees saved progress', (
+      expect(find.text('$count/35 sati odrađeno'), findsOneWidget);
+      expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+      expect(find.byType(TextFormField), findsNothing);
+      expect(find.text('Spremi napredak'), findsNothing);
+      expect(find.text('Povijest procjena'), findsNothing);
+      final bar = tester.widget<LinearProgressIndicator>(
+        find.byType(LinearProgressIndicator),
+      );
+      expect(bar.value, (count / 35).clamp(0.0, 1.0));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await cubit.close();
+    });
+  }
+
+  testWidgets('unknown target shows hours without an invented goal', (
     tester,
   ) async {
-    final repo = Repository();
-    final state = cubit(repo);
-    await state.load();
+    repository.value = hours(7, target: null);
+    final cubit = hoursCubit(repository);
+    await cubit.load();
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: BlocProvider.value(value: state, child: const ProgressView()),
+          body: BlocProvider.value(value: cubit, child: const ProgressView()),
         ),
       ),
     );
-    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Savladano').last);
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Spremi napredak'));
-    await tester.tap(find.text('Spremi napredak'));
-    await tester.pump();
-    expect(repo.sent, {'PARKING': 'MASTERED'});
-    repo.result.complete(
-      Right(data(entries: [entry('lesson', 'MASTERED', 10, 10)])),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Napredak je spremljen.'), findsOneWidget);
-    expect(state.state.data!.latest('PARKING')!.status, 'MASTERED');
-    expect(tester.takeException(), isNull);
+    expect(find.text('7 sati odrađeno'), findsOneWidget);
+    expect(find.text('Cilj sati nije postavljen.'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
     await tester.pumpWidget(const SizedBox());
-    await state.close();
+    await cubit.close();
   });
+
+  testWidgets(
+    'refresh failure leaves the counter visible and retry updates it',
+    (tester) async {
+      final cubit = hoursCubit(repository);
+      await cubit.load();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlocProvider.value(value: cubit, child: const ProgressView()),
+          ),
+        ),
+      );
+      repository.failure = const Failure('Veza je prekinuta.', statusCode: 503);
+      await tester.tap(find.byTooltip('Osvježi'));
+      await tester.pumpAndSettle();
+      expect(find.text('Veza je prekinuta.'), findsOneWidget);
+      expect(find.text('25/35 sati odrađeno'), findsOneWidget);
+      repository.failure = null;
+      repository.value = hours(26);
+      await tester.tap(find.text('Pokušaj ponovno'));
+      await tester.pumpAndSettle();
+      expect(find.text('26/35 sati odrađeno'), findsOneWidget);
+      expect(find.text('Veza je prekinuta.'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      await cubit.close();
+    },
+  );
 }

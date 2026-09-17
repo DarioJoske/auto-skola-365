@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 
 public record CreateCandidateRequest(
     @NotBlank String firstName,
@@ -14,6 +15,8 @@ public record CreateCandidateRequest(
     String status,
     @NotBlank String categoryCode,
     UUID assignedInstructorId,
-    String notes
+    String notes,
+    @Positive Integer requiredDrivingHours,
+    @jakarta.validation.constraints.Size(min = 8, max = 72) String loginPassword
 ) {
 }

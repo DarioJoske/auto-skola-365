@@ -1,4 +1,9 @@
 import 'dart:async';
+import 'package:bloc_test/bloc_test.dart';
+import 'package:auto_skola_365_instructor_app/src/features/schedule/presentation/cubit/lesson_detail_state.dart';
+import 'package:auto_skola_365_instructor_app/src/features/progress/presentation/bloc/progress_cubit.dart';
+import '../../../progress/progress_test.dart'
+    show HoursRepository, hoursCubit, hours;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:auto_skola_365_instructor_app/src/features/schedule/presentation/pages/lesson_detail_page.dart';
@@ -35,6 +40,52 @@ void main() {
     if (!cubit.isClosed) await cubit.close();
   });
 
+  test('initial detail state has no lesson or active action', () {
+    expect(cubit.state.status, LessonDetailStatus.initial);
+    expect(cubit.state.lesson, isNull);
+    expect(cubit.state.actionInProgress, isFalse);
+  });
+
+  blocTest<LessonDetailCubit, LessonDetailState>(
+    'completion wins over an older refresh and suppresses duplicate actions',
+    build: () => cubit,
+    act: (cubit) async {
+      await cubit.load();
+      final old = Completer<Either<Failure, InstructorLesson>>();
+      repository.onGet = () => old.future;
+      final refresh = cubit.load();
+      final completion = cubit.completeLesson(null);
+      await cubit.completeLesson(null);
+      await cubit.load();
+      repository.result.complete(Right(lesson('one', 'COMPLETED')));
+      await completion;
+      old.complete(Right(lesson('one', 'CONFIRMED')));
+      await refresh;
+    },
+    expect: () => [
+      isA<LessonDetailState>().having(
+        (s) => s.status,
+        'status',
+        LessonDetailStatus.loading,
+      ),
+      isA<LessonDetailState>().having(
+        (s) => s.lesson?.status,
+        'lesson',
+        'CONFIRMED',
+      ),
+      isA<LessonDetailState>().having(
+        (s) => s.status,
+        'status',
+        LessonDetailStatus.loading,
+      ),
+      isA<LessonDetailState>().having((s) => s.actionInProgress, 'busy', true),
+      isA<LessonDetailState>()
+          .having((s) => s.lesson?.status, 'lesson', 'COMPLETED')
+          .having((s) => s.actionInProgress, 'busy', false),
+    ],
+    verify: (_) => expect(repository.calls, 1),
+  );
+
   testWidgets('completion form keeps the note after failure and allows retry', (
     tester,
   ) async {
@@ -50,11 +101,17 @@ void main() {
       lessonId: 'one',
     );
     await cubit.load();
+    final progressRepository = HoursRepository()..value = hours(24);
+    final progress = hoursCubit(progressRepository);
+    await progress.load();
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: BlocProvider.value(
-            value: cubit,
+          body: MultiBlocProvider(
+            providers: [
+              BlocProvider.value(value: cubit),
+              BlocProvider<ProgressCubit>.value(value: progress),
+            ],
             child: const LessonDetailView(),
           ),
         ),
@@ -62,8 +119,8 @@ void main() {
     );
     await tester.scrollUntilVisible(find.byType(TextFormField), 300);
     await tester.enterText(find.byType(TextFormField), 'Vježba parkiranja');
-    await tester.ensureVisible(find.text('Završi sat'));
-    await tester.tap(find.text('Završi sat'));
+    await tester.ensureVisible(find.text('Dovrši vožnju'));
+    await tester.tap(find.text('Dovrši vožnju'));
     await tester.pump();
     expect(repository.note, 'Vježba parkiranja');
     repository.result.complete(
@@ -73,14 +130,20 @@ void main() {
     expect(find.text('Spremanje nije uspjelo.'), findsOneWidget);
     expect(find.text('Vježba parkiranja'), findsOneWidget);
     repository.result = Completer<Either<Failure, InstructorLesson>>();
-    await tester.tap(find.text('Završi sat'));
+    await tester.tap(find.text('Dovrši vožnju'));
     await tester.pump();
+    progressRepository.value = hours(25);
     repository.result.complete(Right(lesson('one', 'COMPLETED')));
     await tester.pumpAndSettle();
-    expect(find.text('Završi sat'), findsNothing);
+    expect(find.text('Dovrši vožnju'), findsNothing);
     expect(find.text('Sat je označen kao odrađen.'), findsOneWidget);
     expect(repository.calls, 2);
+    await tester.scrollUntilVisible(find.text('25/35 sati odrađeno'), -300);
+    expect(find.text('25/35 sati odrađeno'), findsOneWidget);
+    expect(find.text('Procijeni napredak'), findsNothing);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await progress.close();
   });
 
   test(
@@ -128,13 +191,14 @@ class CompletionRepository extends Fake implements InstructorLessonsRepository {
   var result = Completer<Either<Failure, InstructorLesson>>();
   int calls = 0;
   String? note;
+  FutureEither<InstructorLesson> Function()? onGet;
 
   @override
   FutureEither<InstructorLesson> get({
     required String schoolId,
     required String accessToken,
     required String lessonId,
-  }) async => Right(lesson(lessonId, 'CONFIRMED'));
+  }) => onGet?.call() ?? Future.value(Right(lesson(lessonId, 'CONFIRMED')));
 
   @override
   FutureEither<InstructorLesson> complete({

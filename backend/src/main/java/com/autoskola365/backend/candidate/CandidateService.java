@@ -26,19 +26,31 @@ public class CandidateService {
     private final DrivingCategoryRepository drivingCategoryRepository;
     private final InstructorRepository instructorRepository;
     private final AuthorizationService authorizationService;
+    private final com.autoskola365.backend.identity.UserAccountRepository users;
+    private final com.autoskola365.backend.identity.SchoolMembershipRepository memberships;
+    private final com.autoskola365.backend.identity.RoleRepository roles;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     public CandidateService(
         CandidateRepository candidateRepository,
         SchoolRepository schoolRepository,
         DrivingCategoryRepository drivingCategoryRepository,
         InstructorRepository instructorRepository,
-        AuthorizationService authorizationService
+        AuthorizationService authorizationService,
+        com.autoskola365.backend.identity.UserAccountRepository users,
+        com.autoskola365.backend.identity.SchoolMembershipRepository memberships,
+        com.autoskola365.backend.identity.RoleRepository roles,
+        org.springframework.security.crypto.password.PasswordEncoder passwordEncoder
     ) {
         this.candidateRepository = candidateRepository;
         this.schoolRepository = schoolRepository;
         this.drivingCategoryRepository = drivingCategoryRepository;
         this.instructorRepository = instructorRepository;
         this.authorizationService = authorizationService;
+        this.users = users;
+        this.memberships = memberships;
+        this.roles = roles;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -125,6 +137,8 @@ public class CandidateService {
             request.notes()
         ));
 
+        candidate.setRequiredDrivingHours(request.requiredDrivingHours());
+        saveLoginPassword(candidate, request.loginPassword());
         return toResponse(candidate);
     }
 
@@ -144,6 +158,13 @@ public class CandidateService {
         String status = CandidateStatus.normalize(request.status());
         ensureOibIsUnique(schoolId, request.oib(), candidateId);
 
+        if (!candidate.getDrivingCategory().getId().equals(category.getId())) {
+            candidate.setRequiredDrivingHours(null);
+        }
+        if (request.requiredDrivingHours() != null) {
+            candidate.setRequiredDrivingHours(request.requiredDrivingHours());
+        }
+
         candidate.update(
             category,
             request.firstName(),
@@ -156,6 +177,7 @@ public class CandidateService {
             request.notes()
         );
 
+        saveLoginPassword(candidate, request.loginPassword());
         return toResponse(candidate);
     }
 
@@ -185,6 +207,39 @@ public class CandidateService {
 
         return instructorRepository.findByIdAndSchoolMembershipSchoolId(instructorId, schoolId)
             .orElseThrow(() -> new IllegalArgumentException("Assigned instructor does not exist."));
+    }
+
+    private void saveLoginPassword(Candidate candidate, String password) {
+        if (password == null) return;
+        if (candidate.getUser() != null) {
+            var user = candidate.getUser();
+            var userMemberships = memberships.findByUserId(user.getId());
+            boolean hasCandidateAccess = userMemberships.stream().anyMatch(membership ->
+                membership.getSchool().getId().equals(candidate.getSchool().getId())
+                    && "candidate".equals(membership.getRole().getKey())
+                    && "ACTIVE".equals(membership.getStatus()));
+            boolean hasOtherAccess = userMemberships.stream().anyMatch(membership ->
+                !membership.getSchool().getId().equals(candidate.getSchool().getId())
+                    || !"candidate".equals(membership.getRole().getKey()));
+            if (!hasCandidateAccess || hasOtherAccess) {
+                throw new CandidateAccessDeniedException(
+                    "Lozinku je moguće promijeniti samo za kandidatski račun ove škole.");
+            }
+            user.changePasswordHash(passwordEncoder.encode(password));
+            return;
+        }
+        String email = candidate.getEmail();
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Za aktivaciju pristupa unesite email kandidata.");
+        }
+        if (users.findByEmailIgnoreCase(email.trim()).isPresent()) {
+            throw new IllegalArgumentException("Email već ima korisnički račun. Unesite drugi email za novi pristup.");
+        }
+        var role = roles.findByKey("candidate").orElseThrow(() -> new IllegalStateException("Missing candidate role seed."));
+        var user = users.save(new com.autoskola365.backend.identity.UserAccount(email.trim(),
+            passwordEncoder.encode(password), candidate.getFirstName(), candidate.getLastName(), candidate.getPhone()));
+        memberships.save(new com.autoskola365.backend.identity.SchoolMembership(candidate.getSchool(), user, role));
+        candidate.linkUser(user);
     }
 
     private void requirePermission(UUID schoolId, AuthenticatedUser authenticatedUser) {
@@ -239,7 +294,10 @@ public class CandidateService {
             assignedInstructor == null ? null : assignedInstructor.getSchoolMembership().getUser().getFirstName()
                 + " "
                 + assignedInstructor.getSchoolMembership().getUser().getLastName(),
-            candidate.getNotes()
+            candidate.getNotes(),
+            candidate.getRequiredDrivingHours(),
+            candidate.getUser() != null,
+            candidate.getUser() == null ? null : candidate.getUser().getEmail()
         );
     }
 }

@@ -21,6 +21,11 @@ This applies to:
 - Future instructor app.
 - Future candidate app.
 
+Detailed Flutter/Dart implementation and verification rules live in the repository
+root [AGENTS.md](../../AGENTS.md) and apply to all existing and future apps.
+Keep those rules and this architecture decision aligned; domain repository
+interfaces, use cases and the selected stack remain required boundaries.
+
 ## Goals
 
 - Keep every feature shaped the same way.

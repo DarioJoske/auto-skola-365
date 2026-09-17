@@ -64,6 +64,16 @@ public class LessonController {
         return lessonService.getInstructorLesson(schoolId, lessonId, authenticatedUser);
     }
 
+    @PostMapping("/instructor/reservations")
+    @ResponseStatus(HttpStatus.CREATED)
+    public LessonResponse createInstructorReservation(
+        @PathVariable UUID schoolId,
+        @Valid @RequestBody InstructorLessonReservationRequest request,
+        @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        return lessonService.createInstructorReservation(schoolId, request, authenticatedUser);
+    }
+
     @PostMapping("/candidate/reservations")
     @ResponseStatus(HttpStatus.CREATED)
     public LessonResponse createCandidateReservation(

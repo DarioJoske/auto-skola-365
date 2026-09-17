@@ -1,16 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:auto_skola_design_system/design_system.dart';
 
-class AppTheme {
-  static ThemeData light() {
-    return ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF246B5A),
-        brightness: Brightness.light,
-      ),
-      inputDecorationTheme: const InputDecorationTheme(
-        border: OutlineInputBorder(),
-      ),
-      useMaterial3: true,
-    );
-  }
+abstract final class AppTheme {
+  static ThemeData light() => DrivingSchoolTheme.light();
 }

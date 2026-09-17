@@ -1,0 +1,19 @@
+{
+  "name": "Autoškola 365",
+  "short_name": "Autoškola 365",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F5F7FC",
+  "theme_color": "#245EDB",
+  "description": "Tvoji termini vožnje i odrađeni sati.",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+import '../../domain/entities/reserve_lesson.dart';
+import '../models/reserve_lesson_model.dart';
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/api/failure.dart';
@@ -12,6 +14,19 @@ class InstructorLessonsRepositoryImpl implements InstructorLessonsRepository {
   const InstructorLessonsRepositoryImpl(this._remoteDataSource);
 
   final InstructorLessonsRemoteDataSource _remoteDataSource;
+
+  @override
+  FutureEither<InstructorLesson> reserve({
+    required String schoolId,
+    required String accessToken,
+    required ReserveLesson reservation,
+  }) => _runLessonAction(
+    action: () => _remoteDataSource.reserve(
+      schoolId: schoolId,
+      accessToken: accessToken,
+      reservation: ReserveLessonModel(reservation),
+    ),
+  );
 
   @override
   FutureEither<List<InstructorLesson>> list({

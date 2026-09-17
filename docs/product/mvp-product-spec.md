@@ -71,7 +71,7 @@ Core needs:
 - See today's and upcoming lessons.
 - Access assigned candidate information.
 - Mark lessons completed.
-- Add progress notes after lessons.
+- See completed instructional driving hours against the candidate target.
 - See where each candidate stands.
 
 ### 4.4 Candidate
@@ -207,41 +207,36 @@ Acceptance criteria:
 - Backend rejects conflicting lesson creation or rescheduling.
 - Completed lessons can later feed progress and billing.
 
-### 5.6 Candidate Progress Tracking
+### 5.6 Candidate Driving Hours
+
+Scope simplified on 2026-09-16: MVP progress tracks completed instructional
+hours only. Skill lists, skill ratings and assessment history are outside MVP.
 
 Functional requirements:
 
-- Instructor can record progress after a completed lesson.
-- Progress is structured by driving skill area.
-- Progress supports a small fixed status set.
-- Lesson notes can be attached to a candidate and lesson.
-
-Initial progress statuses:
-
-- Not Started
-- In Progress
-- Needs Practice
-- Satisfactory
-- Mastered
-
-Initial B category progress areas:
-
-- Vehicle controls
-- Starting and stopping
-- Steering and lane position
-- Intersections
-- Roundabouts
-- Parking
-- Reversing
-- City traffic
-- Open road
-- Exam readiness
+- Instructor marks an eligible own confirmed lesson completed after its end.
+- Backend counts completed DRIVING lessons for the candidate's current category.
+- Each existing 60-minute calendar slot contributes one instructional hour
+  (45 minutes of teaching within the scheduled hour).
+- Requested, confirmed, cancelled and no-show lessons contribute no hours.
+- Show `25/35 sati odrađeno`; retain the actual count above the target, e.g. 37/35.
+- Standard B-category target defaults to 35. Store the target per candidate and
+  allow school admins to set a positive value through the candidate API.
+- Other categories have no inferred target until one is configured.
+- Keep existing general lesson and candidate notes; no assessment form is needed.
 
 Acceptance criteria:
 
-- Instructor can quickly update progress after a lesson.
-- Admin can view candidate progress from candidate profile.
-- Model can later support category-specific templates.
+- Candidate progress and lesson detail show the same backend-calculated hours.
+- Completing a lesson refreshes the displayed counter automatically.
+- Repeated/concurrent completion cannot double count a lesson.
+- Access remains scoped to the school and assigned candidate/instructor.
+- Reaching the target does not automatically change candidate status or exam readiness.
+- Admin candidate details show completed/target hours and allow editing a positive target.
+- Instructor can reserve a confirmed 60-minute driving lesson for a currently assigned candidate.
+- Instructor identity comes from the signed-in account, not a selectable form field.
+- Admin selects an instructor first; the candidate picker shows only that instructor's current candidates and resets when the instructor changes.
+- Backend rechecks the current assignment and rejects conflicting reservations.
 
 ## 6. Out Of MVP, But Model-Aware
 
@@ -280,19 +275,22 @@ MVP screens:
 - Today schedule.
 - Upcoming lessons.
 - Candidate detail.
-- Complete lesson / progress note form.
+- Complete lesson action with an optional general note.
+- Completed driving hours, for example `25/35 sati odrađeno`.
 
 ### 7.3 Candidate Application
 
-Not part of the first admin-core MVP implementation.
+First candidate slice implemented on 2026-09-17:
 
-Planned first screens:
+- Admin activates a new candidate login by setting an initial password.
+- Candidate login and school-scoped access to their own data.
+- Home overview with next lesson and completed driving hours.
+- Upcoming lessons, lesson history and statuses.
+- Requests for a 60-minute lesson with the assigned instructor.
+- Profile and logout.
+- Shared light/blue design system with responsive mobile and desktop layouts.
 
-- Login.
-- Upcoming lessons.
-- Progress overview.
-- Exams overview.
-- Messages.
+Exams, messages, invitations and password recovery remain follow-up work.
 
 ## 8. Recommended Technical Direction
 
@@ -319,9 +317,6 @@ Planned first screens:
 - Vehicle
 - Lesson
 - LessonStatusHistory
-- CandidateProgressTemplate
-- CandidateProgressItem
-- LessonProgressNote
 - Exam
 - Document
 - Payment
@@ -343,7 +338,7 @@ The MVP is successful when:
 
 - Admin can manage candidates and instructors.
 - Admin can schedule and change lessons without conflicts.
-- Instructor can view daily schedule and record lesson progress.
+- Instructor can view daily schedule, complete lessons and see completed/target hours.
 - Candidate status and progress are visible from the admin side.
 - Backend enforces roles, school scope and scheduling rules.
 - The domain model is ready for exams, documents, billing and candidate app.

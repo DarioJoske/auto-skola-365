@@ -1,3 +1,4 @@
+import 'package:auto_skola_365_instructor_app/src/features/schedule/domain/entities/reserve_lesson.dart';
 import 'dart:async';
 
 import 'package:dartz/dartz.dart';
@@ -87,6 +88,13 @@ void main() {
 }
 
 class PendingLessonsRepository implements InstructorLessonsRepository {
+  @override
+  FutureEither<InstructorLesson> reserve({
+    required String schoolId,
+    required String accessToken,
+    required ReserveLesson reservation,
+  }) => throw UnimplementedError();
+
   final requests = <Completer<Either<Failure, List<InstructorLesson>>>>[];
   final confirmation = Completer<Either<Failure, InstructorLesson>>();
   int confirmCalls = 0;

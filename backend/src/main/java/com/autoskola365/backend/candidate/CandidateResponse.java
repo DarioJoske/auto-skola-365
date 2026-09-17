@@ -15,6 +15,9 @@ public record CandidateResponse(
     String categoryName,
     UUID assignedInstructorId,
     String assignedInstructorName,
-    String notes
+    String notes,
+    Integer requiredDrivingHours,
+    boolean hasLogin,
+    String loginEmail
 ) {
 }

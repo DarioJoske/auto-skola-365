@@ -1,4 +1,4 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bloc/bloc.dart';
 
 import '../../../../core/api/result.dart';
 import '../../../../core/api/result_extensions.dart';
@@ -38,7 +38,7 @@ class LessonDetailCubit extends Cubit<LessonDetailState> {
   int _loadRequestId = 0;
 
   Future<void> load() async {
-    if (isClosed) return;
+    if (isClosed || state.actionInProgress) return;
     final requestId = ++_loadRequestId;
     emit(
       state.copyWith(
@@ -117,6 +117,7 @@ class LessonDetailCubit extends Cubit<LessonDetailState> {
     required FutureEither<InstructorLesson> Function() action,
   }) async {
     if (isClosed || state.actionInProgress) return;
+    ++_loadRequestId;
     emit(
       state.copyWith(
         actionInProgress: true,
@@ -131,6 +132,9 @@ class LessonDetailCubit extends Cubit<LessonDetailState> {
       onFailure: (failure) {
         emit(
           state.copyWith(
+            status: state.lesson == null
+                ? LessonDetailStatus.failure
+                : LessonDetailStatus.loaded,
             actionInProgress: false,
             errorMessage: failure.message,
             errorStatusCode: failure.statusCode,
