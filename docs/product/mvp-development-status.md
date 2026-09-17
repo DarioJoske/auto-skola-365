@@ -4,6 +4,14 @@ Ažurirano: 2026-09-17. Ovaj pregled opisuje kod pripremljen za novi PR prema
 `main`. Poslovna pravila nalaze se u [MVP specifikaciji](mvp-product-spec.md), a
 ugovori endpointa u [API dokumentaciji](../architecture/api.md).
 
+## Dopuna — task #6: operativni admin pregled
+
+Početni pregled škole sada učitava stvarne pokazatelje, termine i stavke za
+pažnju. Instruktori imaju pretragu, popis dodijeljenih kandidata i potvrđeno
+tjedno opterećenje. Dodani su školski agregacijski endpointovi i poveznice na
+filtrirane postojeće ekrane. Detalji i definicije: [admin pregled](../development/admin-overview.md).
+Ova dopuna zamjenjuje raniju stavku o nedovršenom početnom admin pregledu.
+
 ## Dovršeno u kodu
 
 - Admin upravlja kandidatima i instruktorima, dodjeljuje instruktora te rezervira
@@ -61,7 +69,7 @@ ugovori endpointa u [API dokumentaciji](../architecture/api.md).
 1. Postupno implementirati prošireni Figma design system i ekrane kroz
    [GitHub Project](https://github.com/users/DarioJoske/projects/2). Postojeći
    Flutter paket s osnovnim komponentama još ne pokriva cijelu Figma biblioteku.
-2. Dovršiti početni admin pregled s pravim podacima i dodatne funkcionalnosti
+2. Dovršiti dodatne funkcionalnosti
    specificirane zasebnim zadacima.
 3. Ručno proći povezani tijek: admin aktivira kandidata i dodijeli instruktora →
    kandidat zatraži termin → instruktor potvrdi i završi sat → svi vide novi zbroj.

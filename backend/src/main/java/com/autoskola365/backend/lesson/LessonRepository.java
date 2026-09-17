@@ -12,6 +12,17 @@ import org.springframework.data.repository.query.Param;
 
 public interface LessonRepository extends JpaRepository<Lesson, UUID> {
 
+    long countBySchoolIdAndStatus(UUID schoolId, String status);
+
+    long countBySchoolIdAndStatusAndEndAtLessThanEqual(UUID schoolId, String status, Instant now);
+
+    @EntityGraph(attributePaths = {"candidate", "instructor.schoolMembership.user", "drivingCategory"})
+    List<Lesson> findTop5BySchoolIdAndStatusOrderByStartAtAsc(UUID schoolId, String status);
+
+    @EntityGraph(attributePaths = {"candidate", "instructor.schoolMembership.user", "drivingCategory"})
+    List<Lesson> findTop5BySchoolIdAndStatusAndEndAtLessThanEqualOrderByStartAtAsc(
+        UUID schoolId, String status, Instant now);
+
     List<Lesson> findBySchoolIdAndCandidateIdOrderByStartAtDesc(UUID schoolId, UUID candidateId);
 
     long countBySchoolIdAndCandidateIdAndDrivingCategoryIdAndStatusAndLessonType(

@@ -1,4 +1,5 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bloc/bloc.dart';
+import '../../domain/entities/lesson_filters.dart';
 
 import '../../../../core/api/failure.dart';
 import '../../../../core/api/result.dart';
@@ -18,6 +19,7 @@ import 'lessons_state.dart';
 
 class LessonsCubit extends Cubit<LessonsState> {
   LessonsCubit({
+    LessonFilters? initialFilters,
     required ListLessons listLessons,
     required CreateLessonUseCase createLesson,
     required UpdateLessonUseCase updateLesson,
@@ -36,7 +38,14 @@ class LessonsCubit extends Cubit<LessonsState> {
        _listInstructors = listInstructors,
        _schoolId = schoolId,
        _accessToken = accessToken,
-       super(LessonsState.initial());
+       super(
+         initialFilters == null
+             ? LessonsState.initial()
+             : LessonsState(
+                 status: LessonsStatus.initial,
+                 filters: initialFilters,
+               ),
+       );
 
   final ListLessons _listLessons;
   final CreateLessonUseCase _createLesson;
@@ -48,7 +57,10 @@ class LessonsCubit extends Cubit<LessonsState> {
   final String _schoolId;
   final String _accessToken;
 
+  int _loadGeneration = 0;
+
   Future<void> load() async {
+    final generation = ++_loadGeneration;
     emit(
       state.copyWith(
         status: LessonsStatus.loading,
@@ -70,8 +82,10 @@ class LessonsCubit extends Cubit<LessonsState> {
     final instructorsResult = await _listInstructors(
       schoolId: _schoolId,
       accessToken: _accessToken,
-      filters: const InstructorFilters(active: true),
+      filters: const InstructorFilters(),
     );
+
+    if (isClosed || generation != _loadGeneration) return;
 
     final failure =
         lessonsResult.resolveWithFailure<Failure?>(
@@ -136,6 +150,11 @@ class LessonsCubit extends Cubit<LessonsState> {
         ),
       ),
     );
+    await load();
+  }
+
+  Future<void> clearCandidateFilter() async {
+    emit(state.copyWith(filters: state.filters.copyWith(clearCandidate: true)));
     await load();
   }
 
