@@ -9,6 +9,9 @@ abstract final class AppSpacing {
   static const double xxl = 48;
   static const double xxxl = 64;
 
+  static const double fieldHeight = 56;
+  static const double menuMaxHeight = 320;
+
   // Layout constraints, not additional Figma variables.
   static const double contentWidth = 1120;
   static const double compactBreakpoint = 600;

@@ -11,19 +11,22 @@ final class PortalNavigation extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) {
-    final index = path == '/lessons'
-        ? 1
-        : path == '/profile'
-        ? 2
-        : 0;
+    final index = switch (path) {
+      final value when value.startsWith('/lessons') => 1,
+      '/journey' || '/exams' => 2,
+      '/messages' => 3,
+      '/profile' || '/documents-payments' => 4,
+      _ => 0,
+    };
     return AppNavigationShell(
       title: 'Autoškola 365',
       selectedIndex: index,
-      onDestinationSelected: (index) =>
-          context.go(['/', '/lessons', '/profile'][index]),
+      onDestinationSelected: (index) => context.go(
+        ['/', '/lessons', '/journey', '/messages', '/profile'][index],
+      ),
       destinations: const [
         AppDestination(
-          label: 'Pregled',
+          label: 'Početna',
           icon: Icons.home_outlined,
           selectedIcon: Icons.home,
         ),
@@ -33,7 +36,17 @@ final class PortalNavigation extends StatelessWidget {
           selectedIcon: Icons.calendar_month,
         ),
         AppDestination(
-          label: 'Moj profil',
+          label: 'Moj put',
+          icon: Icons.route_outlined,
+          selectedIcon: Icons.route,
+        ),
+        AppDestination(
+          label: 'Poruke',
+          icon: Icons.chat_bubble_outline,
+          selectedIcon: Icons.chat_bubble,
+        ),
+        AppDestination(
+          label: 'Profil',
           icon: Icons.person_outline,
           selectedIcon: Icons.person,
         ),

@@ -225,6 +225,32 @@ class TenancyRegressionTest {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM lessons WHERE start_at=? AND status <> 'CANCELLED'", Integer.class, java.sql.Timestamp.from(start))).isEqualTo(1);
     }
 
+    @Test
+    void adminConflictNamesResourceAndActualIntervalWithoutLeakingOtherCandidate() throws Exception {
+        String body = lessonBody(CANDIDATE, Instant.parse("2026-09-08T08:30:00Z"));
+        postJson(BASE + "/lessons", adminToken, body)
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("CONFLICT"))
+            .andExpect(jsonPath("$.message").value("Instruktor već ima termin 08.09.2026. 08:00 – 08.09.2026. 09:00 UTC. Odaberite drugo vrijeme."));
+        // After reassignment the historical instructor differs, but the candidate remains occupied.
+        jdbc.update("UPDATE candidates SET assigned_instructor_profile_id=? WHERE id=?", id(OTHER_INSTRUCTOR), id(CANDIDATE));
+        postJson(BASE + "/lessons", adminToken, body.replace(INSTRUCTOR, OTHER_INSTRUCTOR))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message").value("Kandidat već ima termin 08.09.2026. 08:00 – 08.09.2026. 09:00 UTC. Odaberite drugo vrijeme."));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM lessons", Integer.class)).isEqualTo(2);
+    }
+
+    @Test
+    void adminStatusFiltersIncludeFinalStatusesAndCancelledSlotCanBeReused() throws Exception {
+        for (String lessonStatus : List.of("REQUESTED", "CONFIRMED", "COMPLETED", "NO_SHOW", "CANCELLED")) {
+            jdbc.update("UPDATE lessons SET status=? WHERE id=?", lessonStatus, id(LESSON));
+            read(BASE + "/lessons?from=2026-09-08T00:00:00Z&to=2026-09-09T00:00:00Z&status=" + lessonStatus, adminToken)
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value(lessonStatus));
+        }
+        postJson(BASE + "/lessons", adminToken, lessonBody(CANDIDATE, Instant.parse("2026-09-08T08:00:00Z")))
+            .andExpect(status().isCreated());
+    }
+
     private void assertRace(Callable<ResultActions> a, Callable<ResultActions> b, int success) throws Exception {
         var pool = Executors.newFixedThreadPool(2);
         var ready = new CountDownLatch(2);

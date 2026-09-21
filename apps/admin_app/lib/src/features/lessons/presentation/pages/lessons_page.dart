@@ -17,6 +17,7 @@ import 'lessons_view.dart';
 final class LessonsPage extends StatelessWidget {
   const LessonsPage({
     this.initialFilters,
+    this.openCreateOnLoad = false,
     required this.listLessons,
     required this.createLesson,
     required this.updateLesson,
@@ -28,6 +29,7 @@ final class LessonsPage extends StatelessWidget {
   });
 
   final LessonFilters? initialFilters;
+  final bool openCreateOnLoad;
   final ListLessons listLessons;
   final CreateLessonUseCase createLesson;
   final UpdateLessonUseCase updateLesson;
@@ -54,7 +56,7 @@ final class LessonsPage extends StatelessWidget {
         schoolId: membership.schoolId,
         accessToken: authState.accessToken!,
       )..load(),
-      child: const LessonsView(),
+      child: LessonsView(openCreateOnLoad: openCreateOnLoad),
     );
   }
 }

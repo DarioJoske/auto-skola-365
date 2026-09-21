@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import 'dart:async';
 import 'package:auto_skola_365_instructor_app/src/core/api/failure.dart';
 import 'package:auto_skola_365_instructor_app/src/core/api/result.dart';
@@ -228,7 +229,7 @@ void main() {
       );
       await tester.tap(find.text('Otvori'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.tap(find.byType(AppDropdownFormField<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Ana Anić').last);
       await tester.pumpAndSettle();

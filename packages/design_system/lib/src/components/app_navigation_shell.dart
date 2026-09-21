@@ -24,9 +24,11 @@ final class AppNavigationShell extends StatelessWidget {
     required this.child,
     this.mode = AppNavigationMode.mobile,
     this.subtitle,
+    this.identityInSidebar = false,
     this.actions = const [],
     super.key,
   });
+  final bool identityInSidebar;
   final String title;
   final String? subtitle;
   final List<AppDestination> destinations;
@@ -71,6 +73,9 @@ final class AppNavigationShell extends StatelessWidget {
                                   padding: EdgeInsets.symmetric(vertical: 24),
                                   child: Icon(Icons.route_outlined),
                                 ),
+                                trailing: identityInSidebar
+                                    ? Column(children: actions)
+                                    : null,
                                 destinations: [
                                   for (final destination in destinations)
                                     NavigationRailDestination(
@@ -93,55 +98,57 @@ final class AppNavigationShell extends StatelessWidget {
                           ),
                   ),
                 ),
-              if (rail) const VerticalDivider(width: 1),
+              if (rail && !identityInSidebar) const VerticalDivider(width: 1),
               Expanded(
                 key: const ValueKey('shell-content'),
                 child: Column(
                   children: [
-                    Material(
-                      color: Theme.of(context).colorScheme.surface,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.space12,
-                        ),
-                        child: Row(
-                          children: [
-                            if (admin && !rail)
-                              Builder(
-                                builder: (context) => IconButton(
-                                  tooltip: 'Otvori navigaciju',
-                                  onPressed: () =>
-                                      Scaffold.of(context).openDrawer(),
-                                  icon: const Icon(Icons.menu),
-                                ),
-                              ),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    title,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleLarge,
+                    if (!rail || !identityInSidebar) ...[
+                      Material(
+                        color: Theme.of(context).colorScheme.surface,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.space12,
+                          ),
+                          child: Row(
+                            children: [
+                              if (admin && !rail)
+                                Builder(
+                                  builder: (context) => IconButton(
+                                    tooltip: 'Otvori navigaciju',
+                                    onPressed: () =>
+                                        Scaffold.of(context).openDrawer(),
+                                    icon: const Icon(Icons.menu),
                                   ),
-                                  if (subtitle != null)
+                                ),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      subtitle!,
+                                      title,
                                       style: Theme.of(
                                         context,
-                                      ).textTheme.bodySmall,
+                                      ).textTheme.titleLarge,
                                     ),
-                                ],
+                                    if (subtitle != null)
+                                      Text(
+                                        subtitle!,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            ...actions,
-                          ],
+                              ...actions,
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const Divider(height: 1),
+                      const Divider(height: 1),
+                    ],
                     Expanded(child: child),
                   ],
                 ),
@@ -191,6 +198,11 @@ final class AppNavigationShell extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.md),
+        if (identityInSidebar)
+          Text(
+            title.toUpperCase(),
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
         const Divider(),
         for (var index = 0; index < destinations.length; index++)
           Padding(
@@ -205,13 +217,30 @@ final class AppNavigationShell extends StatelessWidget {
                           destinations[index].icon
                     : destinations[index].icon,
               ),
-              title: Text(destinations[index].label),
+              title: Text(
+                destinations[index].label,
+                style: identityInSidebar
+                    ? Theme.of(context).textTheme.labelLarge
+                    : null,
+              ),
+              iconColor: identityInSidebar
+                  ? Theme.of(context).colorScheme.onSurface
+                  : null,
+              selectedColor: identityInSidebar
+                  ? Theme.of(context).colorScheme.onSurface
+                  : null,
               onTap: () {
                 Scaffold.maybeOf(context)?.closeDrawer();
                 onDestinationSelected(index);
               },
             ),
           ),
+        if (identityInSidebar) ...[
+          const SizedBox(height: AppSpacing.md),
+          if (subtitle != null)
+            Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
+          Wrap(children: actions),
+        ],
       ],
     ),
   );

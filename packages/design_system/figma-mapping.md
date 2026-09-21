@@ -2,7 +2,7 @@
 
 Izvor: [365 Foundations, 9:8](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=9-8),
 pročitano 2026-09-17. Svijetla tema je jedini Figma mode. Mapiranje ima ukupno
-**53 varijable = 18 primitive + 21 semantic + 14 dimensions**, bez dodavanja
+**57 varijabli = 18 primitive + 21 semantic + 18 dimensions**, bez dodavanja
 izmišljenog tamnog moda.
 
 ## 18 primitive varijabli
@@ -66,7 +66,7 @@ Tonal gumb koristi `secondaryContainer = primaryContainer` i
 `onSecondaryContainer = primary`, što odgovara plavoj oznaci na svijetloplavoj
 Figma podlozi. Status Info koristi tamniji `onPrimaryContainer`.
 
-## 14 dimenzijskih varijabli
+## 18 dimenzijskih varijabli
 
 | Figma `365 Dimensions` | Flutter | Vrijednost |
 | --- | --- | --- |
@@ -79,17 +79,21 @@ Figma podlozi. Status Info koristi tamniji `onPrimaryContainer`.
 | space/32 | AppSpacing.xl | 32 |
 | space/48 | AppSpacing.xxl | 48 |
 | space/64 | AppSpacing.xxxl | 64 |
+| radius/4 | AppRadius.xs | 4 |
+| control/field-height | AppSpacing.fieldHeight | 56 (osnovna visina) |
+| control/menu-item-height | AppSpacing.touchTarget | 48 (minimum) |
+| control/menu-max-height | AppSpacing.menuMaxHeight | 320 |
 | radius/8 | AppRadius.sm | 8 |
 | radius/12 | AppRadius.md | 12 |
 | radius/20 | AppRadius.lg | 20 |
 | radius/28 | AppRadius.xl | 28 |
 | radius/999 | AppRadius.full | 999 |
 
-`contentWidth = 1120`, `compactBreakpoint = 600` i `touchTarget = 48` dodatne su
-layout konstante, ne dio broja 53. `AppPage` koristi širinu roditelja, ne cijelog
+`contentWidth = 1120` i `compactBreakpoint = 600` dodatne su
+layout konstante, ne dio broja 57. `AppPage` koristi širinu roditelja, ne cijelog
 prozora, i dopušta eksplicitnu širinu/padding.
 
-## 9 tekstualnih stilova
+## 10 tekstualnih stilova
 
 [AppTypography](lib/src/tokens/app_typography.dart) koristi postojeći
 `packages/auto_skola_design_system/SchoolSans` (Roboto). Nema preuzimanja fontova
@@ -106,6 +110,7 @@ u runtimeu. Svi stilovi imaju letterSpacing 0; `height = lineHeight / fontSize`.
 | 365/BodySmall | bodySmall | bodyMedium | 14 / 20 / 400 |
 | 365/Label | label | labelLarge | 14 / 20 / 700 |
 | 365/Caption | caption | labelSmall | 12 / 16 / 700 |
+| 365/FieldLabel | bodyLarge uz Materialovo skaliranje 0,75 i visinu 4/3 | InputDecorationTheme.floatingLabelStyle | 12 / 16 / 400 |
 
 Preostali Material TextTheme slotovi koriste najbliži postojeći stil, bez novih
 fontova/težina: displayMedium → Display, displaySmall → Headline,
@@ -133,7 +138,10 @@ Alpha je zaokružena na najbliži 8-bitni kanal. Zadane kartice bez sjene korist
 | Figma komponenta | Flutter mapiranje | Primjena / stanja |
 | --- | --- | --- |
 | Button, 13:2 | AppButton → FilledButton, FilledButton.tonal, OutlinedButton, TextButton | Enabled, hovered, focused, pressed, disabled, loading. |
-| TextField, 13:24 | AppTextField → TextFormField, InputDecorationTheme | Default, focused, error, focused-error, disabled, read-only; Form validator i backend errorText. |
+| TextField, 13:24 | AppTextField → TextFormField, InputDecorationTheme | Outlined bez ispune, radius 4, osnovna visina 56; default/focus/error/disabled, validator i backend errorText. |
+| DropdownField, 79:21 | AppDropdownFormField → DropdownMenu, FormField | Ista outlined geometrija; kontrolirani odabir, nullable opcija, validacija, reset, Escape i tipkovnica. |
+| MenuItem, 77:8 | MenuItemButton / DropdownMenuEntry | Stavke najmanje 48 px; odabrana kvačica, fokus, disabled; prelamanje duljih oznaka. |
+| Menu, 78:4 | MenuAnchor / DropdownMenu + MenuTheme | Standardna površina, radius 4, padding 8, elevation 2; najviše 320 px visine uz scrollbar. |
 | Checkbox, 38:2376; Switch, 39:8 | Standardni Checkbox/CheckboxListTile i Switch/SwitchListTile | Material stanje i semantika; nije potreban paralelni wrapper. |
 | StatusBadge, 15:10 | AppStatusBadge + AppTone | Info, success, warning, error, neutral; tekst uvijek ostaje vidljiv. |
 | LessonCard, 15:11 | AppLessonCard | Podaci i akcija od pozivatelja, bez provjere ovlasti u paketu. |
@@ -164,3 +172,17 @@ Komponente nemaju fiksnu visinu iz makete: sadržaj raste s lokalizacijom i
 skaliranjem teksta. Omjer napretka mijenja samo indikator; nema unosa odrađenih
 sati, automatske procjene spremnosti ili otkrivanja bilješki. Primjeri triju
 aplikacija i provjere opisani su u [README-u](README.md).
+
+## Korekcija izbornika i outlined polja — 2026-09-18
+
+Primijenjene [Material 3 smjernice](https://m3.material.io/components/menus/guidelines).
+Sva aplikacijska izborna polja koriste zajednički Material 3 wrapper; stari
+`DropdownButtonFormField` i `PopupMenuButton` uklonjeni su iz aplikacijskih izvora.
+Exposed menu prati širinu polja; overflow menu raste do 280 px. Standardni M3
+izbornik sam prilagođava položaj prostoru. 56 px i 48 px nisu maksimalne visine:
+veći font i više redaka povećavaju komponente. Standardne Material sjene izbornika
+slijede elevation 2; Figma prikazuje odgovarajući projektni stil 365/Elevation/2.
+
+Figma primjer otvorenog izbornika: [85:9](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=85-9).
+Ažurirane su instance polja u adminu, instruktoru, kandidatu i prijavi. Produktni
+primjeri u maketama ostaju podređeni [handoffu](../../docs/architecture/design-handoff.md).

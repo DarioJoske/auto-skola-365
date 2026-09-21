@@ -155,7 +155,10 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Ivan Ivić'), findsOneWidget);
         expect(find.text('2 h 0 min\n2 termina'), findsOneWidget);
-        await tester.enterText(find.byType(TextField), 'Ivan');
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Pretraži instruktore'),
+          'Ivan',
+        );
         await tester.tap(find.text('Pretraži'));
         expect(cubit.query, 'Ivan');
         expect(tester.takeException(), isNull);

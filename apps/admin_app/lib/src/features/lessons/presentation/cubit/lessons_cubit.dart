@@ -60,6 +60,7 @@ class LessonsCubit extends Cubit<LessonsState> {
   int _loadGeneration = 0;
 
   Future<void> load() async {
+    if (isClosed || state.isSubmitting) return;
     final generation = ++_loadGeneration;
     emit(
       state.copyWith(
@@ -113,7 +114,7 @@ class LessonsCubit extends Cubit<LessonsState> {
     }
 
     emit(
-      LessonsState(
+      state.copyWith(
         status: LessonsStatus.loaded,
         filters: state.filters,
         lessons: lessonsResult.resolveWithFailure(
@@ -170,78 +171,55 @@ class LessonsCubit extends Cubit<LessonsState> {
     await load();
   }
 
-  Future<bool> create(SaveLesson lesson) async {
-    emit(
-      state.copyWith(
-        isSubmitting: true,
-        errorMessage: null,
-        errorStatusCode: null,
-      ),
-    );
-    final result = await _createLesson(
+  Future<void> create(SaveLesson lesson) => _mutate(
+    () => _createLesson(
       schoolId: _schoolId,
       accessToken: _accessToken,
       lesson: lesson,
-    );
+    ),
+  );
 
-    return _resolveMutation(result);
-  }
-
-  Future<bool> update(String lessonId, SaveLesson lesson) async {
-    emit(
-      state.copyWith(
-        isSubmitting: true,
-        errorMessage: null,
-        errorStatusCode: null,
-      ),
-    );
-    final result = await _updateLesson(
+  Future<void> update(String lessonId, SaveLesson lesson) => _mutate(
+    () => _updateLesson(
       schoolId: _schoolId,
       accessToken: _accessToken,
       lessonId: lessonId,
       lesson: lesson,
-    );
+    ),
+  );
 
-    return _resolveMutation(result);
-  }
-
-  Future<bool> confirm(String lessonId) async {
-    emit(
-      state.copyWith(
-        isSubmitting: true,
-        errorMessage: null,
-        errorStatusCode: null,
-      ),
-    );
-    final result = await _confirmLesson(
+  Future<void> confirm(String lessonId) => _mutate(
+    () => _confirmLesson(
       schoolId: _schoolId,
       accessToken: _accessToken,
       lessonId: lessonId,
-    );
+    ),
+  );
 
-    return _resolveMutation(result);
-  }
-
-  Future<bool> cancel(String lessonId) async {
-    emit(
-      state.copyWith(
-        isSubmitting: true,
-        errorMessage: null,
-        errorStatusCode: null,
-      ),
-    );
-    final result = await _cancelLesson(
+  Future<void> cancel(String lessonId) => _mutate(
+    () => _cancelLesson(
       schoolId: _schoolId,
       accessToken: _accessToken,
       lessonId: lessonId,
+    ),
+  );
+
+  Future<void> _mutate(FutureResult<Lesson> Function() action) async {
+    if (isClosed || state.isSubmitting) return;
+    // A pending read must not overwrite the result of this mutation.
+    ++_loadGeneration;
+    emit(
+      state.copyWith(
+        isSubmitting: true,
+        status: state.status == LessonsStatus.loading
+            ? LessonsStatus.loaded
+            : state.status,
+      ),
     );
-
-    return _resolveMutation(result);
-  }
-
-  Future<bool> _resolveMutation(Result<Lesson> result) async {
-    return result.resolveWithFailure(
-      onFailure: (failure) {
+    final result = await action();
+    if (isClosed) return;
+    await result.resolveWithFailure<Future<void>>(
+      onFailure: (failure) async {
         emit(
           state.copyWith(
             isSubmitting: false,
@@ -250,11 +228,15 @@ class LessonsCubit extends Cubit<LessonsState> {
             errorEventId: state.errorEventId + 1,
           ),
         );
-        return false;
       },
       onSuccess: (_) async {
+        emit(
+          state.copyWith(
+            isSubmitting: false,
+            savedEventId: state.savedEventId + 1,
+          ),
+        );
         await load();
-        return true;
       },
     );
   }

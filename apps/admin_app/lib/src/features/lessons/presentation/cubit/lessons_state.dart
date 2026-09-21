@@ -6,17 +6,20 @@ import '../../domain/entities/lesson_filters.dart';
 enum LessonsStatus { initial, loading, loaded, failure }
 
 class LessonsState {
-  const LessonsState({
+  LessonsState({
     required this.status,
     required this.filters,
-    this.lessons = const [],
-    this.candidates = const [],
-    this.instructors = const [],
+    List<Lesson> lessons = const [],
+    List<Candidate> candidates = const [],
+    List<Instructor> instructors = const [],
     this.errorMessage,
     this.errorStatusCode,
     this.errorEventId = 0,
     this.isSubmitting = false,
-  });
+    this.savedEventId = 0,
+  }) : lessons = List.unmodifiable(lessons),
+       candidates = List.unmodifiable(candidates),
+       instructors = List.unmodifiable(instructors);
 
   LessonsState.initial()
     : this(
@@ -36,6 +39,7 @@ class LessonsState {
   final int? errorStatusCode;
   final int errorEventId;
   final bool isSubmitting;
+  final int savedEventId;
 
   LessonsState copyWith({
     LessonsStatus? status,
@@ -47,6 +51,7 @@ class LessonsState {
     int? errorStatusCode,
     int? errorEventId,
     bool? isSubmitting,
+    int? savedEventId,
   }) {
     return LessonsState(
       status: status ?? this.status,
@@ -58,6 +63,7 @@ class LessonsState {
       errorStatusCode: errorStatusCode,
       errorEventId: errorEventId ?? this.errorEventId,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      savedEventId: savedEventId ?? this.savedEventId,
     );
   }
 

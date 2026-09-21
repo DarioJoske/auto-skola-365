@@ -221,32 +221,26 @@ final class _InstructorFiltersBar extends StatelessWidget {
       children: [
         SizedBox(
           width: 190,
-          child: DropdownButtonFormField<bool>(
-            isExpanded: true,
-            itemHeight: null,
-            isDense: false,
+          child: AppDropdownFormField<bool>(
             initialValue: active,
             decoration: const InputDecoration(labelText: 'Status'),
             items: const [
-              DropdownMenuItem(value: null, child: Text('Svi')),
-              DropdownMenuItem(value: true, child: Text('Aktivni')),
-              DropdownMenuItem(value: false, child: Text('Neaktivni')),
+              AppDropdownOption(value: null, label: 'Svi'),
+              AppDropdownOption(value: true, label: 'Aktivni'),
+              AppDropdownOption(value: false, label: 'Neaktivni'),
             ],
             onChanged: onActiveChanged,
           ),
         ),
         SizedBox(
           width: 160,
-          child: DropdownButtonFormField<String>(
-            isExpanded: true,
-            itemHeight: null,
-            isDense: false,
+          child: AppDropdownFormField<String>(
             initialValue: categoryCode,
             decoration: const InputDecoration(labelText: 'Kategorija'),
             items: [
-              const DropdownMenuItem(value: null, child: Text('Sve')),
+              const AppDropdownOption(value: null, label: 'Sve'),
               ..._categoryCodes.map(
-                (code) => DropdownMenuItem(value: code, child: Text(code)),
+                (code) => AppDropdownOption(value: code, label: code),
               ),
             ],
             onChanged: onCategoryChanged,
@@ -696,15 +690,13 @@ final class _AvailabilityRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: DropdownButtonFormField<int>(
+            child: AppDropdownFormField<int>(
               initialValue: rule.dayOfWeek,
               decoration: const InputDecoration(labelText: 'Dan'),
               items: _weekDays.entries
                   .map(
-                    (entry) => DropdownMenuItem(
-                      value: entry.key,
-                      child: Text(entry.value),
-                    ),
+                    (entry) =>
+                        AppDropdownOption(value: entry.key, label: entry.value),
                   )
                   .toList(),
               onChanged: (value) {

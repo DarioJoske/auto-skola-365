@@ -103,9 +103,18 @@ void main() {
               ),
             ),
           );
-          await tester.enterText(find.byType(TextField), 'Ana');
+          await tester.enterText(
+            find.byWidgetPredicate(
+              (widget) => widget is TextField && !widget.readOnly,
+            ),
+            'Ana',
+          );
           final search = tester
-              .widget<TextField>(find.byType(TextField))
+              .widget<TextField>(
+                find.byWidgetPredicate(
+                  (widget) => widget is TextField && !widget.readOnly,
+                ),
+              )
               .controller!;
           FocusManager.instance.primaryFocus?.unfocus();
           for (final status in [

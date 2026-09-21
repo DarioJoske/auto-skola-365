@@ -303,20 +303,18 @@ class _StatusFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
+    return AppDropdownFormField<String>(
       initialValue: value,
-      isExpanded: true,
+
       decoration: const InputDecoration(
         labelText: 'Status',
         prefixIcon: Icon(Icons.filter_alt_outlined),
       ),
       items: [
-        const DropdownMenuItem(value: null, child: Text('Svi statusi')),
+        const AppDropdownOption(value: null, label: 'Svi statusi'),
         ..._candidateStatuses.map(
-          (status) => DropdownMenuItem(
-            value: status,
-            child: Text(_statusLabel(status), overflow: TextOverflow.ellipsis),
-          ),
+          (status) =>
+              AppDropdownOption(value: status, label: _statusLabel(status)),
         ),
       ],
       onChanged: (value) =>
@@ -332,17 +330,17 @@ class _CategoryFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
+    return AppDropdownFormField<String>(
       initialValue: value,
-      isExpanded: true,
+
       decoration: const InputDecoration(
         labelText: 'Kategorija',
         prefixIcon: Icon(Icons.directions_car_outlined),
       ),
       items: [
-        const DropdownMenuItem(value: null, child: Text('Sve kategorije')),
+        const AppDropdownOption(value: null, label: 'Sve kategorije'),
         ..._categoryCodes.map(
-          (code) => DropdownMenuItem(value: code, child: Text(code)),
+          (code) => AppDropdownOption(value: code, label: code),
         ),
       ],
       onChanged: (value) =>
@@ -419,11 +417,7 @@ class _CandidateCard extends StatelessWidget {
             ),
             if (_hasValue(candidate.notes)) ...[
               const SizedBox(height: 12),
-              Text(
-                candidate.notes!,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
+              Text(candidate.notes!, maxLines: 3),
             ],
           ],
         ),
@@ -454,11 +448,7 @@ class _InfoChip extends StatelessWidget {
           Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
           const SizedBox(width: 6),
           Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            child: Text(label, style: Theme.of(context).textTheme.bodySmall),
           ),
         ],
       ),

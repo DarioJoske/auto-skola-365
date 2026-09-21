@@ -557,7 +557,6 @@ class _CompleteLessonFormState extends State<_CompleteLessonForm> {
             decoration: const InputDecoration(
               labelText: 'Bilješka nakon vožnje (neobavezno)',
               hintText: 'Dodatna napomena o vožnji',
-              border: OutlineInputBorder(),
             ),
             validator: (value) => (value?.length ?? 0) > 2000
                 ? 'Bilješka može sadržavati najviše 2000 znakova.'

@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import '../../../progress/presentation/widgets/driving_hours_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -193,17 +194,14 @@ class _CandidateDialogState extends State<CandidateDialog> {
                       decoration: const InputDecoration(labelText: 'OIB'),
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      itemHeight: null,
-                      isDense: false,
+                    AppDropdownFormField<String>(
                       initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: candidateStatuses
                           .map(
-                            (status) => DropdownMenuItem(
+                            (status) => AppDropdownOption(
                               value: status,
-                              child: Text(candidateStatusLabel(status)),
+                              label: candidateStatusLabel(status),
                             ),
                           )
                           .toList(),
@@ -216,20 +214,15 @@ class _CandidateDialogState extends State<CandidateDialog> {
                       },
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      itemHeight: null,
-                      isDense: false,
+                    AppDropdownFormField<String>(
                       initialValue: _categoryCode,
                       decoration: const InputDecoration(
                         labelText: 'Kategorija',
                       ),
                       items: categoryCodes
                           .map(
-                            (code) => DropdownMenuItem(
-                              value: code,
-                              child: Text(code),
-                            ),
+                            (code) =>
+                                AppDropdownOption(value: code, label: code),
                           )
                           .toList(),
                       onChanged: (value) {
@@ -242,23 +235,20 @@ class _CandidateDialogState extends State<CandidateDialog> {
                       },
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      itemHeight: null,
-                      isDense: false,
+                    AppDropdownFormField<String>(
                       initialValue: _safeInstructorValue(state.instructors),
                       decoration: const InputDecoration(
                         labelText: 'Dodijeljeni instruktor',
                       ),
                       items: [
-                        const DropdownMenuItem(
+                        const AppDropdownOption(
                           value: null,
-                          child: Text('Bez instruktora'),
+                          label: 'Bez instruktora',
                         ),
                         ...state.instructors.map(
-                          (instructor) => DropdownMenuItem(
+                          (instructor) => AppDropdownOption(
                             value: instructor.id,
-                            child: Text(instructor.fullName),
+                            label: instructor.fullName,
                           ),
                         ),
                       ],

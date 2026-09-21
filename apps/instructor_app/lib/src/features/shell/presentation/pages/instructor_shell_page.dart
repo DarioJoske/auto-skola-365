@@ -11,18 +11,26 @@ final class InstructorShellPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
     final selectedIndex = switch (location) {
-      final value when value.startsWith('/candidates') => 1,
-      final value when value.startsWith('/settings') => 2,
-      _ => 0,
+      final value when value.startsWith('/candidates') => 2,
+      '/home' => 0,
+      '/messages' => 3,
+      '/profile' || '/settings' || '/availability' => 4,
+      _ => 1,
     };
     return AppNavigationShell(
       title:
           context.watch<AuthCubit>().state.instructorMembership?.schoolName ??
           'Instruktor',
       selectedIndex: selectedIndex,
-      onDestinationSelected: (index) =>
-          context.go(['/', '/candidates', '/settings'][index]),
+      onDestinationSelected: (index) => context.go(
+        ['/home', '/', '/candidates', '/messages', '/profile'][index],
+      ),
       destinations: const [
+        AppDestination(
+          label: 'Danas',
+          icon: Icons.home_outlined,
+          selectedIcon: Icons.home,
+        ),
         AppDestination(
           label: 'Raspored',
           icon: Icons.calendar_today_outlined,
@@ -34,9 +42,14 @@ final class InstructorShellPage extends StatelessWidget {
           selectedIcon: Icons.people,
         ),
         AppDestination(
-          label: 'Postavke',
-          icon: Icons.settings_outlined,
-          selectedIcon: Icons.settings,
+          label: 'Poruke',
+          icon: Icons.chat_bubble_outline,
+          selectedIcon: Icons.chat_bubble,
+        ),
+        AppDestination(
+          label: 'Profil',
+          icon: Icons.person_outline,
+          selectedIcon: Icons.person,
         ),
       ],
       actions: [

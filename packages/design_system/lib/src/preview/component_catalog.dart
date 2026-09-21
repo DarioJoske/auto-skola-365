@@ -58,6 +58,21 @@ final class ComponentCatalog extends StatelessWidget {
         initialValue: 'Ana Horvat',
         enabled: false,
       ),
+      const SizedBox(height: AppSpacing.md),
+      AppDropdownFormField<String>(
+        decoration: const InputDecoration(labelText: 'Instruktor'),
+        initialValue: 'ivan',
+        items: const [
+          AppDropdownOption(value: 'ivan', label: 'Ivan Instruktor'),
+          AppDropdownOption(value: 'marko', label: 'Marko Babić'),
+          AppDropdownOption(
+            value: 'petra',
+            label: 'Petra Novak',
+            enabled: false,
+          ),
+        ],
+        onChanged: (_) {},
+      ),
       const SizedBox(height: AppSpacing.lg),
       for (final elevation in AppElevation.values) ...[
         AppCard(

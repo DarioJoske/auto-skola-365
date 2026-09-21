@@ -180,17 +180,28 @@ void main() {
           await tester.tap(find.text('Povijest'));
           await tester.pumpAndSettle();
           expect(find.text('Odrađeno'), findsOneWidget);
-          await tester.tap(find.text('Moj profil'));
+          for (final label in ['Moj put', 'Poruke']) {
+            await tester.tap(
+              find.descendant(
+                of: find.byType(NavigationBar),
+                matching: find.text(label),
+              ),
+            );
+            await tester.pumpAndSettle();
+            expect(find.text('U pripremi'), findsOneWidget);
+            expect(find.byTooltip('Svi ekrani'), findsNothing);
+          }
+          await tester.tap(find.text('Profil'));
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 16));
           expect(find.text('Tvoji termini'), findsNothing);
           expect(find.text('ana@example.com'), findsOneWidget);
           // Rapid tab changes must leave only the selected destination visible.
-          await tester.tap(find.text('Pregled'));
+          await tester.tap(find.text('Početna'));
           await tester.pump();
           await tester.tap(find.text('Termini'));
           await tester.pump();
-          await tester.tap(find.text('Moj profil'));
+          await tester.tap(find.text('Profil'));
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 16));
           expect(find.text('Bok, Ana.'), findsNothing);

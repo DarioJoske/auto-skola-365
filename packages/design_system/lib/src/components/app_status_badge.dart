@@ -7,11 +7,13 @@ final class AppStatusBadge extends StatelessWidget {
   const AppStatusBadge({
     required this.label,
     this.tone,
+    this.textAlign,
     this.isPositive = false,
     super.key,
   });
 
   final String label;
+  final TextAlign? textAlign;
   final AppTone? tone;
 
   /// Legacy success selector used when [tone] is omitted.
@@ -32,6 +34,7 @@ final class AppStatusBadge extends StatelessWidget {
         ),
         child: Text(
           label,
+          textAlign: textAlign,
           style: Theme.of(
             context,
           ).textTheme.labelSmall?.copyWith(color: intent.foreground(context)),

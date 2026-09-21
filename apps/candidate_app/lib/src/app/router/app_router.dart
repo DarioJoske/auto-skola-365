@@ -1,3 +1,4 @@
+import 'planned_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
@@ -28,6 +29,7 @@ GoRouter createAppRouter({
       builder: (_, state, child) =>
           PortalShell(path: state.uri.path, child: child),
       routes: [
+        ...plannedRoutes(),
         GoRoute(
           path: '/',
           pageBuilder: (_, state) => NoTransitionPage<void>(

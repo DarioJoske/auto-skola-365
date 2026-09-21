@@ -288,18 +288,15 @@ final class _CandidateFiltersBar extends StatelessWidget {
         ),
         SizedBox(
           width: 220,
-          child: DropdownButtonFormField<String>(
-            isExpanded: true,
-            itemHeight: null,
-            isDense: false,
+          child: AppDropdownFormField<String>(
             initialValue: status,
             decoration: const InputDecoration(labelText: 'Status'),
             items: [
-              const DropdownMenuItem(value: null, child: Text('Svi statusi')),
+              const AppDropdownOption(value: null, label: 'Svi statusi'),
               ...candidateStatuses.map(
-                (status) => DropdownMenuItem(
+                (status) => AppDropdownOption(
                   value: status,
-                  child: Text(candidateStatusLabel(status)),
+                  label: candidateStatusLabel(status),
                 ),
               ),
             ],
@@ -308,16 +305,13 @@ final class _CandidateFiltersBar extends StatelessWidget {
         ),
         SizedBox(
           width: 160,
-          child: DropdownButtonFormField<String>(
-            isExpanded: true,
-            itemHeight: null,
-            isDense: false,
+          child: AppDropdownFormField<String>(
             initialValue: categoryCode,
             decoration: const InputDecoration(labelText: 'Kategorija'),
             items: [
-              const DropdownMenuItem(value: null, child: Text('Sve')),
+              const AppDropdownOption(value: null, label: 'Sve'),
               ...categoryCodes.map(
-                (code) => DropdownMenuItem(value: code, child: Text(code)),
+                (code) => AppDropdownOption(value: code, label: code),
               ),
             ],
             onChanged: onCategoryChanged,
@@ -325,25 +319,19 @@ final class _CandidateFiltersBar extends StatelessWidget {
         ),
         SizedBox(
           width: 240,
-          child: DropdownButtonFormField<String>(
-            isExpanded: true,
-            itemHeight: null,
-            isDense: false,
+          child: AppDropdownFormField<String>(
             initialValue: _safeInstructorFilterValue(),
             decoration: const InputDecoration(labelText: 'Instruktor'),
             items: [
-              const DropdownMenuItem(
-                value: null,
-                child: Text('Svi instruktori'),
-              ),
-              const DropdownMenuItem(
+              const AppDropdownOption(value: null, label: 'Svi instruktori'),
+              const AppDropdownOption(
                 value: withoutInstructorFilterValue,
-                child: Text('Bez instruktora'),
+                label: 'Bez instruktora',
               ),
               ...instructors.map(
-                (instructor) => DropdownMenuItem(
+                (instructor) => AppDropdownOption(
                   value: instructor.id,
-                  child: Text(instructor.fullName),
+                  label: instructor.fullName,
                 ),
               ),
             ],
