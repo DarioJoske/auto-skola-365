@@ -1,8 +1,16 @@
 # MVP — stanje razvoja i nastavak
 
-Ažurirano: 2026-09-17. Ovaj pregled opisuje kod pripremljen za novi PR prema
+Ažurirano: 2026-09-18. Ovaj pregled opisuje kod pripremljen za novi PR prema
 `main`. Poslovna pravila nalaze se u [MVP specifikaciji](mvp-product-spec.md), a
 ugovori endpointa u [API dokumentaciji](../architecture/api.md).
+
+## Dopuna — task #7: raspored, obrazac i rute dizajna
+
+Admin raspored dobio je tjedne kartice i filtre svih statusa, prilagodljivi
+obrazac i konkretne konflikte uz očuvanje unosa. Sve tri aplikacije imaju
+placeholder rute za preostale ekrane; glavna odredišta dostupna su kroz
+navigacijske trake prema Figmi, bez zasebnog kataloga. Budući moduli
+ostaju neimplementirani. [Ponašanje, mapa ekrana i provjere](../development/admin-schedule.md).
 
 ## Dopuna — task #6: operativni admin pregled
 

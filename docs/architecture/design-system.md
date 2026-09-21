@@ -14,7 +14,7 @@ Proširena specifikacija za sve tri aplikacije nalazi se u
 [Figma projektu](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc).
 Implementacija cijele biblioteke i dodatnih ekrana vodi se kroz
 [GitHub Project](https://github.com/users/DarioJoske/projects/2).
-Paket sada mapira svih 53 varijable, 9 tekstualnih stilova i 3 elevation stila
+Paket sada mapira 57 varijabli, 10 tekstualnih stilova i 3 elevation stila
 te nudi gumbe, polja, statuse, retke, kartice i inline obavijesti. Točno
 [Figma → Flutter mapiranje](../../packages/design_system/figma-mapping.md)
 razdvaja zajedničke komponente od standardnih Material widgeta i aplikacijskih
@@ -63,3 +63,21 @@ rada. Široke tablice koriste `AppHorizontalScroll`.
 
 [Provjere navigacije i stanja](../development/responsive-shells.md) opisuju
 pokretanje testova, previewe, pregledane širine i ograničenja provjere.
+
+## Izbornici i outlined polja — 2026-09-18
+
+Prema [Material 3 smjernicama za izbornike](https://m3.material.io/components/menus/guidelines),
+izbornici su privremene površine usidrene uz kontrolu. Sve tri aplikacije koriste
+outlined polja bez ispune, s radiusom 4 i osnovnom visinom 56 px. Dropdowni u adminu
+i instruktoru prešli su na `AppDropdownFormField` (Material 3 `DropdownMenu`), a
+kalendarski izbornici na `MenuAnchor` i `MenuItemButton`. Kandidatska polja nasljeđuju
+istu zajedničku temu. Nema novih ovisnosti ni promjene poslovnih pravila.
+
+Izborna polja čuvaju validaciju, prazni odabir, resetiranje ovisnog kandidata i
+onemogućena stanja. Escape i klik izvan izbornika vraćaju potvrđeni odabir.
+Izbornik prati širinu polja, ograničen je na 320 px visine i ima scrollbar;
+48 px je najmanja visina stavke. Uvećanje teksta i više redaka ostaju podržani.
+
+Figma `TextField` i sve njegove instance ažurirani su; dodani su `DropdownField`,
+`MenuItem`, `Menu` i [otvoreni primjer](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=85-9).
+Specifikacija tokena i stanja nalazi se u [mapiranju](../../packages/design_system/figma-mapping.md).

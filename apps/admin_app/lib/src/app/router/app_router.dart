@@ -1,3 +1,4 @@
+import 'planned_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -76,6 +77,7 @@ GoRouter createAppRouter({
         pageBuilder: (context, state, child) =>
             _noTransitionPage(state, AdminShellPage(child: child)),
         routes: [
+          ...plannedRoutes(),
           GoRoute(
             path: '/',
             pageBuilder: (context, state) => _noTransitionPage(
@@ -124,23 +126,25 @@ GoRouter createAppRouter({
               ),
             ),
           ),
-          GoRoute(
-            path: '/lessons',
-            pageBuilder: (context, state) => _noTransitionPage(
-              state,
-              LessonsPage(
-                key: ValueKey(state.uri.toString()),
-                initialFilters: _lessonFilters(state.uri),
-                listLessons: listLessons,
-                createLesson: createLesson,
-                updateLesson: updateLesson,
-                confirmLesson: confirmLesson,
-                cancelLesson: cancelLesson,
-                listCandidates: listCandidates,
-                listInstructors: listInstructors,
+          for (final path in ['/lessons', '/lessons/new'])
+            GoRoute(
+              path: path,
+              pageBuilder: (context, state) => _noTransitionPage(
+                state,
+                LessonsPage(
+                  openCreateOnLoad: path == '/lessons/new',
+                  key: ValueKey(state.uri.toString()),
+                  initialFilters: _lessonFilters(state.uri),
+                  listLessons: listLessons,
+                  createLesson: createLesson,
+                  updateLesson: updateLesson,
+                  confirmLesson: confirmLesson,
+                  cancelLesson: cancelLesson,
+                  listCandidates: listCandidates,
+                  listInstructors: listInstructors,
+                ),
               ),
             ),
-          ),
           GoRoute(
             path: '/settings',
             pageBuilder: (context, state) =>
@@ -172,6 +176,8 @@ LessonFilters? _lessonFilters(Uri uri) {
           'REQUESTED',
           'CONFIRMED',
           'CANCELLED',
+          'COMPLETED',
+          'NO_SHOW',
         ].contains(uri.queryParameters['status'])
         ? uri.queryParameters['status']
         : null,

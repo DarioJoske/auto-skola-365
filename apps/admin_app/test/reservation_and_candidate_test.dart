@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import 'package:auto_skola_365_admin_app/src/features/candidates/domain/entities/candidate.dart';
 import 'package:auto_skola_365_admin_app/src/features/candidates/domain/entities/update_candidate.dart';
 import 'package:auto_skola_365_admin_app/src/features/candidates/data/models/update_candidate_model.dart';
@@ -67,9 +68,8 @@ class LessonsStub extends Cubit<LessonsState> implements LessonsCubit {
       );
   SaveLesson? saved;
   @override
-  Future<bool> create(SaveLesson lesson) async {
+  Future<void> create(SaveLesson lesson) async {
     saved = lesson;
-    return false;
   }
 
   @override
@@ -111,9 +111,7 @@ void main() {
         ),
       );
       expect(find.text('Prvo odaberite instruktora.'), findsOneWidget);
-      final instructorField = find
-          .byType(DropdownButtonFormField<String>)
-          .at(0);
+      final instructorField = find.byType(AppDropdownFormField<String>).at(0);
       Future<void> chooseInstructor(String name) async {
         await tester.tap(instructorField);
         await tester.pumpAndSettle();
@@ -122,7 +120,7 @@ void main() {
       }
 
       await chooseInstructor('Ivan');
-      await tester.tap(find.byType(DropdownButtonFormField<String>).at(1));
+      await tester.tap(find.byType(AppDropdownFormField<String>).at(1));
       await tester.pumpAndSettle();
       expect(find.text('Ana Kandidat'), findsOneWidget);
       expect(find.text('Mia Kandidat'), findsNothing);
@@ -134,7 +132,7 @@ void main() {
       await tester.tap(find.text('Spremi'));
       await tester.pumpAndSettle();
       expect(cubit.saved, isNull);
-      await tester.tap(find.byType(DropdownButtonFormField<String>).at(1));
+      await tester.tap(find.byType(AppDropdownFormField<String>).at(1));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Mia Kandidat').last);
       await tester.pumpAndSettle();

@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -37,7 +38,20 @@ class _LessonDialogState extends State<LessonDialog> {
     _startAt = lesson?.startAt ?? widget.initialStartAt ?? DateTime.now();
     _status = lesson?.status ?? 'REQUESTED';
     _candidateId = lesson?.candidateId;
-    _instructorId = lesson?.instructorId;
+    _instructorId =
+        lesson?.instructorId ??
+        context
+            .read<LessonsCubit>()
+            .state
+            .instructors
+            .where(
+              (instructor) =>
+                  instructor.active &&
+                  instructor.id ==
+                      context.read<LessonsCubit>().state.filters.instructorId,
+            )
+            .firstOrNull
+            ?.id;
     _notesController.text = lesson?.notes ?? '';
   }
 
@@ -48,13 +62,16 @@ class _LessonDialogState extends State<LessonDialog> {
   }
 
   Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final earliest = now.subtract(const Duration(days: 30));
+    final latest = now.add(const Duration(days: 365));
     final picked = await showDatePicker(
       context: context,
       initialDate: _startAt,
-      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      firstDate: _startAt.isBefore(earliest) ? _startAt : earliest,
+      lastDate: _startAt.isAfter(latest) ? _startAt : latest,
     );
-    if (picked == null) {
+    if (picked == null || !mounted) {
       return;
     }
 
@@ -74,7 +91,7 @@ class _LessonDialogState extends State<LessonDialog> {
       context: context,
       initialTime: TimeOfDay.fromDateTime(_startAt),
     );
-    if (picked == null) {
+    if (picked == null || !mounted) {
       return;
     }
 
@@ -104,12 +121,10 @@ class _LessonDialogState extends State<LessonDialog> {
       notes: _emptyToNull(_notesController.text),
     );
     final cubit = context.read<LessonsCubit>();
-    final saved = widget.lesson == null
-        ? await cubit.create(lesson)
-        : await cubit.update(widget.lesson!.id, lesson);
-
-    if (saved && mounted) {
-      Navigator.of(context).pop(true);
+    if (widget.lesson == null) {
+      await cubit.create(lesson);
+    } else {
+      await cubit.update(widget.lesson!.id, lesson);
     }
   }
 
@@ -124,176 +139,222 @@ class _LessonDialogState extends State<LessonDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<LessonsCubit, LessonsState>(
-      builder: (context, state) {
-        final candidates = state.candidates
-            .where(
-              (candidate) =>
-                  _instructorId != null &&
-                  candidate.assignedInstructorId == _instructorId,
-            )
-            .toList();
-        final selectedCandidate =
-            candidates.any((candidate) => candidate.id == _candidateId)
-            ? _candidateId
-            : null;
+    return PopScope(
+      canPop: !context.select((LessonsCubit cubit) => cubit.state.isSubmitting),
+      child: BlocConsumer<LessonsCubit, LessonsState>(
+        listenWhen: (previous, current) =>
+            previous.savedEventId != current.savedEventId,
+        listener: (context, state) => Navigator.of(context).pop(true),
+        builder: (context, state) {
+          final candidates = state.candidates
+              .where(
+                (candidate) =>
+                    _instructorId != null &&
+                    candidate.assignedInstructorId == _instructorId,
+              )
+              .toList();
+          final selectedCandidate =
+              candidates.any((candidate) => candidate.id == _candidateId)
+              ? _candidateId
+              : null;
 
-        return AlertDialog(
-          title: Text(_isEditing ? 'Uredi termin' : 'Novi termin'),
-          content: SizedBox(
-            width: 520,
-            child: Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      itemHeight: null,
-                      isDense: false,
-                      initialValue:
-                          state.instructors.any((i) => i.id == _instructorId)
-                          ? _instructorId
-                          : null,
-                      decoration: const InputDecoration(
-                        labelText: 'Instruktor',
+          return AlertDialog(
+            title: Text(_isEditing ? 'Uredi termin' : 'Novi termin'),
+            content: SizedBox(
+              width: 640,
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Dogovori vožnju',
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      items: state.instructors
-                          .where(
-                            (i) =>
-                                i.active || i.id == widget.lesson?.instructorId,
-                          )
-                          .map(
-                            (instructor) => DropdownMenuItem(
-                              value: instructor.id,
-                              child: Text(instructor.fullName),
-                            ),
-                          )
-                          .toList(),
-                      validator: _required,
-                      onChanged: state.isSubmitting
-                          ? null
-                          : (value) => setState(() {
-                              _instructorId = value;
-                              _candidateId = null;
-                            }),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      itemHeight: null,
-                      isDense: false,
-                      key: ValueKey('$_instructorId:$selectedCandidate'),
-                      initialValue: selectedCandidate,
-                      decoration: const InputDecoration(labelText: 'Kandidat'),
-                      items: candidates
-                          .map(
-                            (candidate) => DropdownMenuItem(
-                              value: candidate.id,
-                              child: Text(candidate.fullName),
-                            ),
-                          )
-                          .toList(),
-                      validator: _required,
-                      onChanged: state.isSubmitting || candidates.isEmpty
-                          ? null
-                          : (value) => setState(() => _candidateId = value),
-                    ),
-                    if (_instructorId == null)
-                      const Text('Prvo odaberite instruktora.')
-                    else if (candidates.isEmpty)
-                      const Text(
-                        'Odabrani instruktor nema dodijeljenih kandidata.',
+                      const SizedBox(height: 16),
+                      AppDropdownFormField<String>(
+                        initialValue:
+                            state.instructors.any((i) => i.id == _instructorId)
+                            ? _instructorId
+                            : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Instruktor',
+                        ),
+                        items: state.instructors
+                            .where(
+                              (i) =>
+                                  i.active ||
+                                  i.id == widget.lesson?.instructorId,
+                            )
+                            .map(
+                              (instructor) => AppDropdownOption(
+                                value: instructor.id,
+                                label: instructor.fullName,
+                              ),
+                            )
+                            .toList(),
+                        validator: _required,
+                        onChanged: state.isSubmitting
+                            ? null
+                            : (value) => setState(() {
+                                _instructorId = value;
+                                _candidateId = null;
+                              }),
                       ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      itemHeight: null,
-                      isDense: false,
-                      initialValue: _status,
-                      decoration: const InputDecoration(labelText: 'Status'),
-                      items: lessonStatuses
-                          .map(
-                            (status) => DropdownMenuItem(
-                              value: status,
-                              child: Text(lessonStatusLabel(status)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _status = value;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _pickDate,
-                            icon: const Icon(Icons.calendar_month),
-                            label: Text(formatDate(_startAt)),
+                      const SizedBox(height: 12),
+                      AppDropdownFormField<String>(
+                        key: ValueKey('$_instructorId:$selectedCandidate'),
+                        initialValue: selectedCandidate,
+                        decoration: const InputDecoration(
+                          labelText: 'Kandidat',
+                        ),
+                        items: candidates
+                            .map(
+                              (candidate) => AppDropdownOption(
+                                value: candidate.id,
+                                label: candidate.fullName,
+                              ),
+                            )
+                            .toList(),
+                        validator: _required,
+                        onChanged: state.isSubmitting || candidates.isEmpty
+                            ? null
+                            : (value) => setState(() => _candidateId = value),
+                      ),
+                      if (_instructorId == null)
+                        const Text('Prvo odaberite instruktora.')
+                      else if (candidates.isEmpty)
+                        const Text(
+                          'Odabrani instruktor nema dodijeljenih kandidata.',
+                        ),
+                      const SizedBox(height: 12),
+                      AppDropdownFormField<String>(
+                        initialValue: _status,
+                        decoration: const InputDecoration(labelText: 'Status'),
+                        items: lessonStatuses
+                            .map(
+                              (status) => AppDropdownOption(
+                                value: status,
+                                label: lessonStatusLabel(status),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: state.isSubmitting
+                            ? null
+                            : (value) {
+                                if (value != null) {
+                                  setState(() {
+                                    _status = value;
+                                  });
+                                }
+                              },
+                      ),
+                      const SizedBox(height: 12),
+                      _LessonDateTimeFields(
+                        startAt: _startAt,
+                        onPickDate: state.isSubmitting ? null : _pickDate,
+                        onPickTime: state.isSubmitting ? null : _pickTime,
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Trajanje: 60 min · kraj ${formatTime(_startAt.add(const Duration(minutes: 60)))}',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _pickTime,
-                            icon: const Icon(Icons.schedule),
-                            label: Text(formatTime(_startAt)),
-                          ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _notesController,
+                        enabled: !state.isSubmitting,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          labelText: 'Interna napomena',
+                          helperText:
+                              'Neobavezno; vidljivo samo ovlaštenom osoblju škole.',
+                          helperMaxLines: 3,
+                        ),
+                        minLines: 2,
+                        maxLines: 4,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Dodjela kandidata i preklapanja provjeravaju se pri spremanju. Termin traje 60 minuta.',
+                      ),
+                      if (state.errorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        AppNotice(
+                          title: 'Termin nije spremljen',
+                          message: state.errorMessage!,
+                          tone: AppTone.error,
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Trajanje: 60 min · kraj ${formatTime(_startAt.add(const Duration(minutes: 60)))}',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _notesController,
-                      decoration: const InputDecoration(labelText: 'Napomena'),
-                      minLines: 2,
-                      maxLines: 4,
-                    ),
-                    if (state.errorMessage != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        state.errorMessage!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: state.isSubmitting
-                  ? null
-                  : () => Navigator.of(context).pop(false),
-              child: const Text('Odustani'),
-            ),
-            FilledButton(
-              onPressed: state.isSubmitting ? null : _submit,
-              child: Text(state.isSubmitting ? 'Spremam...' : 'Spremi'),
-            ),
-          ],
-        );
-      },
+            actions: [
+              TextButton(
+                onPressed: state.isSubmitting
+                    ? null
+                    : () => Navigator.of(context).pop(false),
+                child: const Text('Odustani'),
+              ),
+              FilledButton(
+                onPressed: state.isSubmitting ? null : _submit,
+                child: Text(state.isSubmitting ? 'Spremam...' : 'Spremi'),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
+}
+
+final class _LessonDateTimeFields extends StatelessWidget {
+  const _LessonDateTimeFields({
+    required this.startAt,
+    required this.onPickDate,
+    required this.onPickTime,
+  });
+  final DateTime startAt;
+  final VoidCallback? onPickDate, onPickTime;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final date = OutlinedButton.icon(
+        onPressed: onPickDate,
+        icon: const Icon(Icons.calendar_month),
+        label: Text(formatDate(startAt)),
+      );
+      final time = OutlinedButton.icon(
+        onPressed: onPickTime,
+        icon: const Icon(Icons.schedule),
+        label: Text(formatTime(startAt)),
+      );
+      if (constraints.maxWidth < 400 ||
+          MediaQuery.textScalerOf(context).scale(14) > 21) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [date, const SizedBox(height: 12), time],
+        );
+      }
+      return Row(
+        children: [
+          Expanded(child: date),
+          const SizedBox(width: 12),
+          Expanded(child: time),
+        ],
+      );
+    },
+  );
 }

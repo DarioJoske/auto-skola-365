@@ -280,15 +280,14 @@ class _InstructorFilters extends StatelessWidget {
       ),
       SizedBox(
         width: 220,
-        child: DropdownButtonFormField<bool?>(
+        child: AppDropdownFormField<bool?>(
           initialValue: active,
-          isExpanded: true,
-          itemHeight: null,
+
           decoration: const InputDecoration(labelText: 'Status'),
           items: const [
-            DropdownMenuItem(value: null, child: Text('Svi instruktori')),
-            DropdownMenuItem(value: true, child: Text('Aktivni')),
-            DropdownMenuItem(value: false, child: Text('Neaktivni')),
+            AppDropdownOption(value: null, label: 'Svi instruktori'),
+            AppDropdownOption(value: true, label: 'Aktivni'),
+            AppDropdownOption(value: false, label: 'Neaktivni'),
           ],
           onChanged: onActiveChanged,
         ),

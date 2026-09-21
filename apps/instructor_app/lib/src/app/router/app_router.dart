@@ -1,3 +1,4 @@
+import 'planned_routes.dart';
 import '../../features/progress/presentation/pages/progress_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -45,6 +46,7 @@ GoRouter createAppRouter({required AuthCubit authCubit}) {
         pageBuilder: (context, state, child) =>
             _noTransitionPage(state, InstructorShellPage(child: child)),
         routes: [
+          ...plannedRoutes(),
           GoRoute(
             path: '/',
             pageBuilder: (context, state) =>
@@ -81,6 +83,11 @@ GoRouter createAppRouter({required AuthCubit authCubit}) {
                 id: state.pathParameters['id']!,
               ),
             ),
+          ),
+          GoRoute(
+            path: '/profile',
+            pageBuilder: (context, state) =>
+                _noTransitionPage(state, const SettingsPage()),
           ),
           GoRoute(
             path: '/settings',

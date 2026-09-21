@@ -1,14 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:auto_skola_design_system/design_system.dart';
+
+const lessonFilterStatuses = [
+  'REQUESTED',
+  'CONFIRMED',
+  'COMPLETED',
+  'CANCELLED',
+  'NO_SHOW',
+];
+
+AppTone lessonStatusTone(String status) => switch (status) {
+  'CONFIRMED' || 'COMPLETED' => AppTone.success,
+  'REQUESTED' => AppTone.warning,
+  'NO_SHOW' => AppTone.error,
+  _ => AppTone.neutral,
+};
 
 const lessonStatuses = ['REQUESTED', 'CONFIRMED', 'CANCELLED'];
 
 String lessonStatusLabel(String status) {
   return switch (status) {
-    'REQUESTED' => 'Za potvrdu',
-    'CONFIRMED' => 'Potvrdeno',
-    'COMPLETED' => 'Odradeno',
+    'REQUESTED' => 'Čeka potvrdu',
+    'CONFIRMED' => 'Potvrđeno',
+    'COMPLETED' => 'Odrađeno',
     'CANCELLED' => 'Otkazano',
-    'NO_SHOW' => 'Nije dosao',
+    'NO_SHOW' => 'Nedolazak',
     _ => status,
   };
 }

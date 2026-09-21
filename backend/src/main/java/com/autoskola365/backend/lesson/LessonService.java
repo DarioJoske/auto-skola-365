@@ -369,12 +369,28 @@ public class LessonService {
             .orElseThrow(() -> new CandidateNotFoundException("Candidate does not exist."));
         instructorRepository.findForUpdate(instructor.getId(), schoolId)
             .orElseThrow(() -> new InstructorNotFoundException("Instructor does not exist."));
-        if (lessonRepository.existsInstructorOverlap(schoolId, instructor.getId(), startAt, endAt, excludedLessonId)) {
-            throw new LessonConflictException("Instructor already has a lesson in this time slot.");
-        }
-        if (lessonRepository.existsCandidateOverlap(schoolId, candidate.getId(), startAt, endAt, excludedLessonId)) {
-            throw new LessonConflictException("Candidate already has a lesson in this time slot.");
-        }
+        lessonRepository.search(schoolId, startAt, endAt, instructor.getId(), null, null).stream()
+            .filter(conflict -> !LessonStatus.CANCELLED.value().equals(conflict.getStatus()))
+            .filter(conflict -> !conflict.getId().equals(excludedLessonId))
+            .findFirst().ifPresent(conflict -> {
+                throw overlapConflict("Instruktor", conflict);
+            });
+        lessonRepository.search(schoolId, startAt, endAt, null, candidate.getId(), null).stream()
+            .filter(conflict -> !LessonStatus.CANCELLED.value().equals(conflict.getStatus()))
+            .filter(conflict -> !conflict.getId().equals(excludedLessonId))
+            .findFirst().ifPresent(conflict -> {
+                throw overlapConflict("Kandidat", conflict);
+            });
+    }
+
+    private LessonConflictException overlapConflict(String resource, Lesson conflict) {
+        // Explicit UTC avoids assuming the caller's local time zone and does not
+        // reveal another candidate's identity to an instructor or candidate.
+        var format = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy. HH:mm")
+            .withZone(java.time.ZoneOffset.UTC);
+        return new LessonConflictException(resource + " već ima termin "
+            + format.format(conflict.getStartAt()) + " – " + format.format(conflict.getEndAt())
+            + " UTC. Odaberite drugo vrijeme.");
     }
 
     private void requireManageLessons(UUID schoolId, AuthenticatedUser authenticatedUser) {

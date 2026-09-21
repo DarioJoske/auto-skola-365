@@ -455,6 +455,11 @@ Candidate users need `lessons.reserve_own` and a linked `candidates.user_id`
 profile to reserve their own lessons. MVP scheduling focuses on `DRIVING`
 lessons.
 
+Overlap failures return `409` / `CONFLICT` with a Croatian `message` naming
+whether the instructor or candidate is occupied and the actual conflicting
+interval, explicitly marked UTC. The message does not disclose another
+candidate's identity. Clients preserve and display this message.
+
 Lesson statuses:
 
 - `REQUESTED`: candidate/admin/instructor requested a slot.

@@ -9,9 +9,14 @@ final class AdminShellPage extends StatelessWidget {
   final Widget child;
   static const _paths = [
     '/',
+    '/lessons',
     '/candidates',
     '/instructors',
-    '/lessons',
+    '/exams',
+    '/fleet',
+    '/finances',
+    '/documents',
+    '/messages',
     '/settings',
   ];
   @override
@@ -25,6 +30,7 @@ final class AdminShellPage extends StatelessWidget {
     );
     return AppNavigationShell(
       mode: AppNavigationMode.admin,
+      identityInSidebar: true,
       title: membership?.schoolName ?? 'Autoškola 365',
       subtitle: '${user.fullName} · ${membership?.roleName ?? "Administrator"}',
       selectedIndex: index < 0 ? 0 : index,
@@ -36,6 +42,11 @@ final class AdminShellPage extends StatelessWidget {
           selectedIcon: Icons.dashboard,
         ),
         AppDestination(
+          label: 'Raspored',
+          icon: Icons.calendar_month_outlined,
+          selectedIcon: Icons.calendar_month,
+        ),
+        AppDestination(
           label: 'Kandidati',
           icon: Icons.people_outline,
           selectedIcon: Icons.people,
@@ -45,11 +56,17 @@ final class AdminShellPage extends StatelessWidget {
           icon: Icons.badge_outlined,
           selectedIcon: Icons.badge,
         ),
+        AppDestination(label: 'Ispiti', icon: Icons.school_outlined),
         AppDestination(
-          label: 'Vožnje',
-          icon: Icons.calendar_month_outlined,
-          selectedIcon: Icons.calendar_month,
+          label: 'Vozni park',
+          icon: Icons.directions_car_outlined,
         ),
+        AppDestination(
+          label: 'Financije',
+          icon: Icons.account_balance_wallet_outlined,
+        ),
+        AppDestination(label: 'Dokumenti', icon: Icons.folder_outlined),
+        AppDestination(label: 'Poruke', icon: Icons.chat_bubble_outline),
         AppDestination(
           label: 'Postavke',
           icon: Icons.settings_outlined,
@@ -65,7 +82,7 @@ final class AdminShellPage extends StatelessWidget {
       ],
       child: Padding(
         padding: EdgeInsets.all(
-          MediaQuery.sizeOf(context).width < 600 ? 16 : 24,
+          MediaQuery.sizeOf(context).width < 600 ? 16 : 32,
         ),
         child: child,
       ),

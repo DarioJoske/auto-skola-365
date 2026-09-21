@@ -2,7 +2,8 @@
 
 Zajednička Material 3 biblioteka za admin, instruktorsku i kandidatsku aplikaciju.
 Task [#3](https://github.com/DarioJoske/auto-skola-365/issues/3) prenosi 53 Figma
-varijable, 9 tekstualnih stilova i 3 elevation stila. Točno mapiranje i svjesne
+varijable, 9 tekstualnih stilova i 3 elevation stila. Korekcija izbornika i
+outlined polja proširuje mapu na 57 varijabli i 10 tekstualnih stilova. Točno mapiranje i svjesne
 prilagodbe Materialu opisane su u [Figma mapiranju](figma-mapping.md).
 
 ## Organizacija
@@ -35,6 +36,9 @@ koriste `tone`, koji ima prednost ako su navedena oba parametra.
 - `AppButton`: filled, tonal, outlined i text; `isLoading` prikazuje indikator
   i blokira ponavljanje akcije. `onPressed: null` isključuje gumb.
   `loadingLabel` dolazi iz aplikacije; zadano ostaje `label`.
+- `AppDropdownFormField`: outlined Material 3 odabir iste osnovne visine kao
+  tekstualno polje (56 px), uz `AppDropdownOption`, validaciju i usidreni izbornik
+  najviše 320 px visine. Stavke imaju najmanje 48 px i vidljiv scrollbar.
 - `AppTextField`: `TextFormField` s trajno vidljivom oznakom, kontrolerom ili
   početnom vrijednosti, validacijom, backend greškom i ulaznim opcijama.
   Kontroler i fokus koje proslijedi pozivatelj ostaju njegovo vlasništvo.

@@ -18,7 +18,7 @@ class SettingsPage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
             Text(
-              'Postavke',
+              'Moj profil',
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),

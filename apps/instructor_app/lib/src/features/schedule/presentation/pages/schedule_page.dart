@@ -505,22 +505,17 @@ class _ScheduleFilters extends StatelessWidget {
               context.read<ScheduleCubit>().setRangeMode(selection.first),
         ),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          itemHeight: null,
-          isDense: false,
+        AppDropdownFormField<String>(
           initialValue: status,
           decoration: const InputDecoration(
             labelText: 'Status',
             prefixIcon: Icon(Icons.filter_alt_outlined),
           ),
           items: [
-            const DropdownMenuItem(value: null, child: Text('Svi statusi')),
+            const AppDropdownOption(value: null, label: 'Svi statusi'),
             ..._lessonStatuses.map(
-              (status) => DropdownMenuItem(
-                value: status,
-                child: Text(_statusLabel(status)),
-              ),
+              (status) =>
+                  AppDropdownOption(value: status, label: _statusLabel(status)),
             ),
           ],
           onChanged: (value) =>

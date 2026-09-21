@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/reserve_lesson.dart';
@@ -131,23 +132,18 @@ class _ReservationDialogState extends State<ReservationDialog> {
                     ),
                   ] else if (!state.loading && state.candidates.isEmpty)
                     const Text('Nemate dodijeljenih kandidata za rezervaciju.'),
-                  DropdownButtonFormField<String>(
+                  AppDropdownFormField<String>(
                     key: ValueKey(state.candidates.map((c) => c.id).join(',')),
                     initialValue:
                         state.candidates.any((c) => c.id == _candidateId)
                         ? _candidateId
                         : null,
-                    isExpanded: true,
+
                     decoration: const InputDecoration(labelText: 'Kandidat'),
                     items: state.candidates
                         .map(
-                          (c) => DropdownMenuItem(
-                            value: c.id,
-                            child: Text(
-                              c.fullName,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
+                          (c) =>
+                              AppDropdownOption(value: c.id, label: c.fullName),
                         )
                         .toList(),
                     onChanged: state.saving || state.loading

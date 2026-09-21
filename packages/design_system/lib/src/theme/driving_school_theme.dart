@@ -89,9 +89,39 @@ abstract final class DrivingSchoolTheme {
     );
     OutlineInputBorder border(Color color, [double width = 1]) =>
         OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.xs),
           borderSide: BorderSide(color: color, width: width),
         );
+    final inputDecoration = InputDecorationTheme(
+      filled: false,
+      fillColor: WidgetStateColor.resolveWith(
+        (states) => states.contains(WidgetState.disabled)
+            ? colors.surfaceContainer
+            : colors.surface,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      isDense: true,
+      labelStyle: text.bodyLarge?.copyWith(color: colors.onSurfaceVariant),
+      floatingLabelStyle: WidgetStateTextStyle.resolveWith(
+        (states) => text.bodyLarge!.copyWith(
+          height: 4 / 3,
+          color: states.contains(WidgetState.error)
+              ? colors.error
+              : states.contains(WidgetState.focused)
+              ? colors.primary
+              : colors.onSurfaceVariant,
+        ),
+      ),
+      helperStyle: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+      errorStyle: text.bodyMedium?.copyWith(color: colors.error),
+      errorMaxLines: 4,
+      border: border(colors.outline),
+      enabledBorder: border(colors.outline),
+      focusedBorder: border(colors.primary, 2),
+      disabledBorder: border(colors.outlineVariant),
+      errorBorder: border(colors.error),
+      focusedErrorBorder: border(colors.error, 2),
+    );
     return ThemeData(
       useMaterial3: true,
       colorScheme: colors,
@@ -117,27 +147,35 @@ abstract final class DrivingSchoolTheme {
           side: BorderSide(color: colors.outlineVariant),
         ),
       ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: WidgetStateColor.resolveWith(
-          (states) => states.contains(WidgetState.disabled)
-              ? colors.surfaceContainer
-              : colors.surface,
+      inputDecorationTheme: inputDecoration,
+      menuTheme: MenuThemeData(
+        style: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(colors.surfaceContainer),
+          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+          elevation: const WidgetStatePropertyAll(2),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(vertical: 8),
+          ),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.xs),
+            ),
+          ),
         ),
-        contentPadding: const EdgeInsets.all(AppSpacing.md),
-        labelStyle: text.bodyLarge?.copyWith(color: colors.onSurfaceVariant),
-        floatingLabelStyle: text.titleMedium?.copyWith(
-          color: colors.onSurfaceVariant,
+      ),
+      menuButtonTheme: MenuButtonThemeData(
+        style: ButtonStyle(
+          textStyle: WidgetStatePropertyAll(text.bodyLarge),
+          minimumSize: const WidgetStatePropertyAll(Size(112, 48)),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          visualDensity: VisualDensity.standard,
         ),
-        helperStyle: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
-        errorStyle: text.bodyMedium?.copyWith(color: colors.error),
-        errorMaxLines: 4,
-        border: border(colors.outline),
-        enabledBorder: border(colors.outline),
-        focusedBorder: border(colors.primary, 2),
-        disabledBorder: border(colors.outlineVariant),
-        errorBorder: border(colors.error),
-        focusedErrorBorder: border(colors.error, 2),
+      ),
+      dropdownMenuTheme: DropdownMenuThemeData(
+        textStyle: text.bodyLarge,
+        inputDecorationTheme: inputDecoration,
       ),
       filledButtonTheme: FilledButtonThemeData(style: button),
       outlinedButtonTheme: OutlinedButtonThemeData(

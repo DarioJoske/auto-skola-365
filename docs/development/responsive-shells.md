@@ -4,7 +4,7 @@ Implementacija zadatka [#5](https://github.com/DarioJoske/auto-skola-365/issues/
 Figma reference: [BottomNavigation 20:23](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=20-23)
 i [AdminSidebar 21:34](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=21-34),
 pregledane 2026-09-17. Sadržaj i odredišta prilagođeni su postojećim rutama.
-Nisu dodani budući ekrani iz makete.
+U #5 nisu dodani budući ekrani iz makete. Naknadni [zadatak #7](admin-schedule.md) dodaje placeholder rute kroz glavne navigacijske trake svih triju aplikacija (bez zasebnog kataloga ekrana).
 
 ## Ponašanje
 

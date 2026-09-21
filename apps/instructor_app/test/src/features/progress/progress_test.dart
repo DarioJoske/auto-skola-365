@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import 'package:auto_skola_365_instructor_app/src/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:auto_skola_365_instructor_app/src/features/auth/presentation/cubit/auth_state.dart';
 import 'dart:async';
@@ -289,7 +290,7 @@ void main() {
         ),
       );
       expect(find.text('$count/35 sati odrađeno'), findsOneWidget);
-      expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+      expect(find.byType(AppDropdownFormField<String>), findsNothing);
       expect(find.byType(TextFormField), findsNothing);
       expect(find.text('Spremi napredak'), findsNothing);
       expect(find.text('Povijest procjena'), findsNothing);
