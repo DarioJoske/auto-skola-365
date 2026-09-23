@@ -16,6 +16,7 @@ class CandidateModel {
     required this.assignedInstructorName,
     required this.notes,
     this.requiredDrivingHours,
+    this.completedDrivingHours,
     this.hasLogin = false,
     this.loginEmail,
   });
@@ -36,6 +37,7 @@ class CandidateModel {
       assignedInstructorName: json['assignedInstructorName'] as String?,
       notes: json['notes'] as String?,
       requiredDrivingHours: json['requiredDrivingHours'] as int?,
+      completedDrivingHours: json['completedDrivingHours'] as int?,
       hasLogin: json['hasLogin'] as bool? ?? false,
       loginEmail: json['loginEmail'] as String?,
     );
@@ -55,6 +57,7 @@ class CandidateModel {
   final String? assignedInstructorName;
   final String? notes;
   final int? requiredDrivingHours;
+  final int? completedDrivingHours;
   final bool hasLogin;
   final String? loginEmail;
 
@@ -74,6 +77,7 @@ class CandidateModel {
       assignedInstructorName: assignedInstructorName,
       notes: notes,
       requiredDrivingHours: requiredDrivingHours,
+      completedDrivingHours: completedDrivingHours,
       hasLogin: hasLogin,
       loginEmail: loginEmail,
     );

@@ -12,6 +12,21 @@ import org.springframework.data.repository.query.Param;
 
 public interface LessonRepository extends JpaRepository<Lesson, UUID> {
 
+    interface CandidateHours {
+        UUID getCandidateId();
+        long getCompletedHours();
+    }
+
+    @Query("""
+        select lesson.candidate.id as candidateId, count(lesson) as completedHours
+        from Lesson lesson
+        where lesson.school.id = :schoolId
+          and lesson.status = 'COMPLETED' and lesson.lessonType = 'DRIVING'
+          and lesson.drivingCategory.id = lesson.candidate.drivingCategory.id
+        group by lesson.candidate.id
+        """)
+    List<CandidateHours> completedHoursByCandidate(@Param("schoolId") UUID schoolId);
+
     long countBySchoolIdAndStatus(UUID schoolId, String status);
 
     long countBySchoolIdAndStatusAndEndAtLessThanEqual(UUID schoolId, String status, Instant now);

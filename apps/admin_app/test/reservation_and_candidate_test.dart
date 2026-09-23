@@ -86,9 +86,8 @@ class CandidatesStub extends Cubit<CandidatesState> implements CandidatesCubit {
       );
   UpdateCandidate? saved;
   @override
-  Future<bool> update(String id, UpdateCandidate candidate) async {
+  Future<void> update(String id, UpdateCandidate candidate) async {
     saved = candidate;
-    return false;
   }
 
   @override

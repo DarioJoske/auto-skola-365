@@ -17,6 +17,7 @@ public record CandidateResponse(
     String assignedInstructorName,
     String notes,
     Integer requiredDrivingHours,
+    long completedDrivingHours,
     boolean hasLogin,
     String loginEmail
 ) {

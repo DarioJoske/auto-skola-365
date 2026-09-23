@@ -18,9 +18,11 @@ final class CandidatesPage extends StatelessWidget {
     required this.listInstructors,
     required this.createCandidate,
     required this.updateCandidate,
+    this.child = const CandidatesView(),
     super.key,
   });
 
+  final Widget child;
   final CandidateFilters initialFilters;
   final ListCandidates listCandidates;
   final ListInstructors listInstructors;
@@ -41,7 +43,7 @@ final class CandidatesPage extends StatelessWidget {
         schoolId: membership.schoolId,
         accessToken: authState.accessToken!,
       )..applyFilters(initialFilters),
-      child: const CandidatesView(),
+      child: child,
     );
   }
 }

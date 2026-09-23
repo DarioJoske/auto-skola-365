@@ -3,18 +3,6 @@ import '../../features/planned/presentation/pages/planned_page.dart';
 
 const plannedScreens = [
   (
-    path: '/candidates/new',
-    title: 'Upis kandidata',
-    description:
-        'Samostalan ekran upisa je u pripremi. Kandidata već možete upisati kroz popis kandidata.',
-  ),
-  (
-    path: '/candidates/:candidateId',
-    title: 'Profil kandidata',
-    description:
-        'Detaljni profil kandidata je u pripremi. Uređivanje i evidencija sati dostupni su kroz popis kandidata.',
-  ),
-  (
     path: '/exams',
     title: 'Ispiti',
     description: 'Planiranje ispita i rezultati bit će dostupni ovdje.',

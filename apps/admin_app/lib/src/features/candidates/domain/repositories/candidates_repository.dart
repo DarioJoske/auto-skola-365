@@ -5,6 +5,12 @@ import '../entities/create_candidate.dart';
 import '../entities/update_candidate.dart';
 
 abstract interface class CandidatesRepository {
+  FutureResult<Candidate> get({
+    required String schoolId,
+    required String accessToken,
+    required String candidateId,
+  });
+
   FutureResult<List<Candidate>> list({
     required String schoolId,
     required String accessToken,

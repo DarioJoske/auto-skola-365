@@ -52,6 +52,20 @@ class _LessonDialogState extends State<LessonDialog> {
             )
             .firstOrNull
             ?.id;
+    if (lesson == null && _instructorId != null) {
+      _candidateId = context
+          .read<LessonsCubit>()
+          .state
+          .candidates
+          .where(
+            (candidate) =>
+                candidate.id ==
+                    context.read<LessonsCubit>().state.filters.candidateId &&
+                candidate.assignedInstructorId == _instructorId,
+          )
+          .firstOrNull
+          ?.id;
+    }
     _notesController.text = lesson?.notes ?? '';
   }
 

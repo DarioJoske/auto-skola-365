@@ -4,11 +4,20 @@ Ažurirano: 2026-09-18. Ovaj pregled opisuje kod pripremljen za novi PR prema
 `main`. Poslovna pravila nalaze se u [MVP specifikaciji](mvp-product-spec.md), a
 ugovori endpointa u [API dokumentaciji](../architecture/api.md).
 
+## Dopuna 2026-09-23 — task #8: kandidati, profil i upis (lokalne izmjene)
+
+Admin popis kandidata sada ima tablične retke, stvarne backend zbrojeve sati,
+filtre i lokalnu paginaciju. Profil prikazuje kontaktni i prijavni e-mail,
+cilj sati, mjesečnu evidenciju vožnji i interne bilješke. Samostalni upis
+zamjenjuje placeholder. Dokumenti, uplate i poruke jasno su označeni kao
+nedostupni; ostaje aktivacija lozinkom bez slanja pozivnice.
+[Ponašanje, razlike prema maketama i provjere](../development/admin-candidates.md).
+
 ## Dopuna — task #7: raspored, obrazac i rute dizajna
 
 Admin raspored dobio je tjedne kartice i filtre svih statusa, prilagodljivi
 obrazac i konkretne konflikte uz očuvanje unosa. Sve tri aplikacije imaju
-placeholder rute za preostale ekrane; glavna odredišta dostupna su kroz
+rute za preostale ekrane (admin profil i upis naknadno implementirani u #8); glavna odredišta dostupna su kroz
 navigacijske trake prema Figmi, bez zasebnog kataloga. Budući moduli
 ostaju neimplementirani. [Ponašanje, mapa ekrana i provjere](../development/admin-schedule.md).
 

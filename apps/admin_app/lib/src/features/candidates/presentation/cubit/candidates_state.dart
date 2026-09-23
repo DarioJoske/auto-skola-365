@@ -14,6 +14,8 @@ class CandidatesState {
     this.errorStatusCode,
     this.errorEventId = 0,
     this.isSubmitting = false,
+    this.savedCandidate,
+    this.saveEventId = 0,
   });
 
   const CandidatesState.initial() : this(status: CandidatesStatus.initial);
@@ -26,6 +28,8 @@ class CandidatesState {
   final int? errorStatusCode;
   final int errorEventId;
   final bool isSubmitting;
+  final Candidate? savedCandidate;
+  final int saveEventId;
 
   CandidatesState copyWith({
     CandidatesStatus? status,
@@ -36,6 +40,8 @@ class CandidatesState {
     int? errorStatusCode,
     int? errorEventId,
     bool? isSubmitting,
+    Candidate? savedCandidate,
+    int? saveEventId,
   }) {
     return CandidatesState(
       status: status ?? this.status,
@@ -46,6 +52,8 @@ class CandidatesState {
       errorStatusCode: errorStatusCode,
       errorEventId: errorEventId ?? this.errorEventId,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      savedCandidate: savedCandidate ?? this.savedCandidate,
+      saveEventId: saveEventId ?? this.saveEventId,
     );
   }
 }

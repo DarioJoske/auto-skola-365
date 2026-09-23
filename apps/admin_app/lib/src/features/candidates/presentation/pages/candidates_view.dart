@@ -1,19 +1,16 @@
+import 'package:go_router/go_router.dart';
 import 'package:auto_skola_design_system/design_system.dart';
-import '../../../../app/app_dependencies.dart';
-import '../../../progress/domain/usecases/load_progress.dart';
-import '../../../progress/presentation/bloc/progress_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../instructors/domain/entities/instructor.dart';
-import '../../domain/entities/candidate.dart';
 import '../../domain/entities/candidate_filters.dart';
 import '../cubit/candidates_cubit.dart';
 import '../cubit/candidates_state.dart';
 
 import 'candidate_presentation.dart';
-import 'candidate_dialog.dart';
+import '../widgets/candidates_table.dart';
 
 final class CandidatesView extends StatefulWidget {
   const CandidatesView({super.key});
@@ -44,46 +41,6 @@ class _CandidatesViewState extends State<CandidatesView> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _openCreateDialog(BuildContext context) async {
-    final created = await showDialog<bool>(
-      context: context,
-      builder: (_) => BlocProvider.value(
-        value: context.read<CandidatesCubit>(),
-        child: const CandidateDialog(),
-      ),
-    );
-
-    if (created == true && context.mounted) {
-      await context.read<CandidatesCubit>().load();
-    }
-  }
-
-  Future<void> _openEditDialog(
-    BuildContext context,
-    Candidate candidate,
-  ) async {
-    final updated = await showDialog<bool>(
-      context: context,
-      builder: (_) => BlocProvider.value(
-        value: context.read<CandidatesCubit>(),
-        child: BlocProvider(
-          create: (_) => ProgressCubit(
-            loadProgress: getIt<LoadProgress>(),
-            schoolId: candidate.schoolId,
-            accessToken: context.read<AuthCubit>().state.accessToken!,
-            resource: 'candidates',
-            id: candidate.id,
-          )..load(),
-          child: CandidateDialog(candidate: candidate),
-        ),
-      ),
-    );
-
-    if (updated == true && context.mounted) {
-      await context.read<CandidatesCubit>().load();
-    }
   }
 
   Future<void> _applyFilters(BuildContext context) async {
@@ -144,19 +101,28 @@ class _CandidatesViewState extends State<CandidatesView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: AppSpacing.lg,
+                      runSpacing: AppSpacing.md,
                       children: [
-                        Expanded(
-                          child: Text(
-                            'Kandidati',
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Kandidati',
+                              style: Theme.of(context).textTheme.headlineLarge,
+                            ),
+                            Text(
+                              '${state.candidates.length} kandidata${state.filters.isActive ? ' · filtrirani prikaz' : ' · sve kategorije'}',
+                            ),
+                          ],
                         ),
                         FilledButton.icon(
-                          onPressed: () => _openCreateDialog(context),
+                          onPressed: () => context.go('/candidates/new'),
                           icon: const Icon(Icons.add),
-                          label: const Text('Novi kandidat'),
+                          label: const Text('Upiši kandidata'),
                         ),
                       ],
                     ),
@@ -213,7 +179,7 @@ class _CandidatesViewState extends State<CandidatesView> {
                     action: FilledButton.icon(
                       onPressed: state.filters.isActive
                           ? () => _clearFilters(context)
-                          : () => _openCreateDialog(context),
+                          : () => context.go('/candidates/new'),
                       icon: Icon(
                         state.filters.isActive ? Icons.clear : Icons.add,
                       ),
@@ -225,15 +191,8 @@ class _CandidatesViewState extends State<CandidatesView> {
                     ),
                   ),
                 ),
-              SliverList.separated(
-                key: const ValueKey('results'),
-                itemCount: state.candidates.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
-                itemBuilder: (context, index) => _CandidateRow(
-                  candidate: state.candidates[index],
-                  onEdit: () =>
-                      _openEditDialog(context, state.candidates[index]),
-                ),
+              SliverToBoxAdapter(
+                child: CandidatesTable(candidates: state.candidates),
               ),
             ],
           );
@@ -270,85 +229,87 @@ final class _CandidateFiltersBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        SizedBox(
-          width: 320,
-          child: TextField(
-            controller: searchController,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              labelText: 'Pretraga',
+    return LayoutBuilder(
+      builder: (context, constraints) => Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          SizedBox(
+            width: constraints.maxWidth < 320 ? constraints.maxWidth : 320,
+            child: TextField(
+              controller: searchController,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                labelText: 'Pretraga',
+              ),
+              onSubmitted: (_) => onApply(),
             ),
-            onSubmitted: (_) => onApply(),
           ),
-        ),
-        SizedBox(
-          width: 220,
-          child: AppDropdownFormField<String>(
-            initialValue: status,
-            decoration: const InputDecoration(labelText: 'Status'),
-            items: [
-              const AppDropdownOption(value: null, label: 'Svi statusi'),
-              ...candidateStatuses.map(
-                (status) => AppDropdownOption(
-                  value: status,
-                  label: candidateStatusLabel(status),
+          SizedBox(
+            width: constraints.maxWidth < 220 ? constraints.maxWidth : 220,
+            child: AppDropdownFormField<String>(
+              initialValue: status,
+              decoration: const InputDecoration(labelText: 'Status'),
+              items: [
+                const AppDropdownOption(value: null, label: 'Svi statusi'),
+                ...candidateStatuses.map(
+                  (status) => AppDropdownOption(
+                    value: status,
+                    label: candidateStatusLabel(status),
+                  ),
                 ),
-              ),
-            ],
-            onChanged: onStatusChanged,
+              ],
+              onChanged: onStatusChanged,
+            ),
           ),
-        ),
-        SizedBox(
-          width: 160,
-          child: AppDropdownFormField<String>(
-            initialValue: categoryCode,
-            decoration: const InputDecoration(labelText: 'Kategorija'),
-            items: [
-              const AppDropdownOption(value: null, label: 'Sve'),
-              ...categoryCodes.map(
-                (code) => AppDropdownOption(value: code, label: code),
-              ),
-            ],
-            onChanged: onCategoryChanged,
-          ),
-        ),
-        SizedBox(
-          width: 240,
-          child: AppDropdownFormField<String>(
-            initialValue: _safeInstructorFilterValue(),
-            decoration: const InputDecoration(labelText: 'Instruktor'),
-            items: [
-              const AppDropdownOption(value: null, label: 'Svi instruktori'),
-              const AppDropdownOption(
-                value: withoutInstructorFilterValue,
-                label: 'Bez instruktora',
-              ),
-              ...instructors.map(
-                (instructor) => AppDropdownOption(
-                  value: instructor.id,
-                  label: instructor.fullName,
+          SizedBox(
+            width: constraints.maxWidth < 160 ? constraints.maxWidth : 160,
+            child: AppDropdownFormField<String>(
+              initialValue: categoryCode,
+              decoration: const InputDecoration(labelText: 'Kategorija'),
+              items: [
+                const AppDropdownOption(value: null, label: 'Sve'),
+                ...categoryCodes.map(
+                  (code) => AppDropdownOption(value: code, label: code),
                 ),
-              ),
-            ],
-            onChanged: onInstructorChanged,
+              ],
+              onChanged: onCategoryChanged,
+            ),
           ),
-        ),
-        FilledButton.icon(
-          onPressed: onApply,
-          icon: const Icon(Icons.filter_alt),
-          label: const Text('Primijeni'),
-        ),
-        TextButton.icon(
-          onPressed: onClear,
-          icon: const Icon(Icons.clear),
-          label: const Text('Ocisti'),
-        ),
-      ],
+          SizedBox(
+            width: constraints.maxWidth < 240 ? constraints.maxWidth : 240,
+            child: AppDropdownFormField<String>(
+              initialValue: _safeInstructorFilterValue(),
+              decoration: const InputDecoration(labelText: 'Instruktor'),
+              items: [
+                const AppDropdownOption(value: null, label: 'Svi instruktori'),
+                const AppDropdownOption(
+                  value: withoutInstructorFilterValue,
+                  label: 'Bez instruktora',
+                ),
+                ...instructors.map(
+                  (instructor) => AppDropdownOption(
+                    value: instructor.id,
+                    label: instructor.fullName,
+                  ),
+                ),
+              ],
+              onChanged: onInstructorChanged,
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: onApply,
+            icon: const Icon(Icons.filter_alt),
+            label: const Text('Primijeni'),
+          ),
+          TextButton.icon(
+            onPressed: onClear,
+            icon: const Icon(Icons.clear),
+            label: const Text('Očisti'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -363,66 +324,5 @@ final class _CandidateFiltersBar extends StatelessWidget {
     return instructors.any((instructor) => instructor.id == instructorId)
         ? instructorId
         : null;
-  }
-}
-
-final class _CandidateRow extends StatelessWidget {
-  const _CandidateRow({required this.candidate, required this.onEdit});
-
-  final Candidate candidate;
-  final VoidCallback onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(child: Text(candidate.firstName.characters.first)),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    candidate.fullName,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    [
-                      candidate.email,
-                      candidate.phone,
-                      'Kategorija ${candidate.categoryCode}',
-                      if (candidate.assignedInstructorName != null)
-                        'Instruktor ${candidate.assignedInstructorName}',
-                    ].whereType<String>().join(' · '),
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Chip(label: Text(candidateStatusLabel(candidate.status))),
-            const SizedBox(width: 8),
-            IconButton(
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit),
-              tooltip: 'Uredi kandidata',
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

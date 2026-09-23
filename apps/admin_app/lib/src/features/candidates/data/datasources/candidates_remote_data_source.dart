@@ -9,6 +9,20 @@ class CandidatesRemoteDataSource {
 
   final ApiClient _apiClient;
 
+  Future<CandidateModel> get({
+    required String schoolId,
+    required String accessToken,
+    required String candidateId,
+  }) async {
+    final json =
+        await _apiClient.getJson(
+              '/api/schools/$schoolId/candidates/$candidateId',
+              accessToken: accessToken,
+            )
+            as Map<String, dynamic>;
+    return CandidateModel.fromJson(json);
+  }
+
   Future<List<CandidateModel>> list({
     required String schoolId,
     required String accessToken,

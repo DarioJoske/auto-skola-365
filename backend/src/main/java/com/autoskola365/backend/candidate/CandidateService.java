@@ -21,6 +21,7 @@ public class CandidateService {
     private static final String MANAGE_CANDIDATES = "candidates.manage";
     private static final String VIEW_ASSIGNED_LESSONS = "lessons.view_assigned";
 
+    private final com.autoskola365.backend.lesson.LessonRepository lessons;
     private final CandidateRepository candidateRepository;
     private final SchoolRepository schoolRepository;
     private final DrivingCategoryRepository drivingCategoryRepository;
@@ -32,6 +33,7 @@ public class CandidateService {
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     public CandidateService(
+        com.autoskola365.backend.lesson.LessonRepository lessons,
         CandidateRepository candidateRepository,
         SchoolRepository schoolRepository,
         DrivingCategoryRepository drivingCategoryRepository,
@@ -42,6 +44,7 @@ public class CandidateService {
         com.autoskola365.backend.identity.RoleRepository roles,
         org.springframework.security.crypto.password.PasswordEncoder passwordEncoder
     ) {
+        this.lessons = lessons;
         this.candidateRepository = candidateRepository;
         this.schoolRepository = schoolRepository;
         this.drivingCategoryRepository = drivingCategoryRepository;
@@ -69,6 +72,7 @@ public class CandidateService {
         String normalizedCategory = categoryCode == null || categoryCode.isBlank() ? null : categoryCode.trim().toUpperCase();
         String normalizedQuery = query == null || query.isBlank() ? null : query.trim();
 
+        var hours = completedHours(schoolId);
         return candidateRepository.findBySchoolIdOrderByCreatedAtDesc(schoolId)
             .stream()
             .filter(candidate -> normalizedStatus == null || candidate.getStatus().equals(normalizedStatus))
@@ -76,7 +80,7 @@ public class CandidateService {
             .filter(candidate -> !withoutInstructor || candidate.getAssignedInstructor() == null)
             .filter(candidate -> assignedInstructorId == null || matchesAssignedInstructor(candidate, assignedInstructorId))
             .filter(candidate -> normalizedQuery == null || matchesQuery(candidate, normalizedQuery))
-            .map(this::toResponse)
+            .map(candidate -> toResponse(candidate, hours.getOrDefault(candidate.getId(), 0L)))
             .toList();
     }
 
@@ -95,12 +99,13 @@ public class CandidateService {
         String normalizedCategory = categoryCode == null || categoryCode.isBlank() ? null : categoryCode.trim().toUpperCase();
         String normalizedQuery = query == null || query.isBlank() ? null : query.trim();
 
+        var hours = completedHours(schoolId);
         return candidateRepository.findBySchoolIdAndAssignedInstructorIdOrderByCreatedAtDesc(schoolId, instructor.getId())
             .stream()
             .filter(candidate -> normalizedStatus == null || candidate.getStatus().equals(normalizedStatus))
             .filter(candidate -> normalizedCategory == null || candidate.getDrivingCategory().getCode().equals(normalizedCategory))
             .filter(candidate -> normalizedQuery == null || matchesQuery(candidate, normalizedQuery))
-            .map(this::toResponse)
+            .map(candidate -> toResponse(candidate, hours.getOrDefault(candidate.getId(), 0L)))
             .toList();
     }
 
@@ -278,7 +283,20 @@ public class CandidateService {
         return value != null && value.toLowerCase().contains(normalizedQuery);
     }
 
+    private java.util.Map<UUID, Long> completedHours(UUID schoolId) {
+        return lessons.completedHoursByCandidate(schoolId).stream().collect(
+            java.util.stream.Collectors.toMap(
+                com.autoskola365.backend.lesson.LessonRepository.CandidateHours::getCandidateId,
+                com.autoskola365.backend.lesson.LessonRepository.CandidateHours::getCompletedHours));
+    }
+
     private CandidateResponse toResponse(Candidate candidate) {
+        return toResponse(candidate, lessons.countBySchoolIdAndCandidateIdAndDrivingCategoryIdAndStatusAndLessonType(
+            candidate.getSchool().getId(), candidate.getId(), candidate.getDrivingCategory().getId(),
+            "COMPLETED", "DRIVING"));
+    }
+
+    private CandidateResponse toResponse(Candidate candidate, long completedHours) {
         InstructorProfile assignedInstructor = candidate.getAssignedInstructor();
         return new CandidateResponse(
             candidate.getId(),
@@ -297,6 +315,7 @@ public class CandidateService {
                 + assignedInstructor.getSchoolMembership().getUser().getLastName(),
             candidate.getNotes(),
             candidate.getRequiredDrivingHours(),
+            completedHours,
             candidate.getUser() != null,
             candidate.getUser() == null ? null : candidate.getUser().getEmail()
         );

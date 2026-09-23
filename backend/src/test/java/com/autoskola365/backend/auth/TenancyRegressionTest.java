@@ -173,6 +173,43 @@ class TenancyRegressionTest {
     }
 
     @Test
+    void candidateTableAndProfileExposeScopedCurrentCategoryHoursWithoutCapping() throws Exception {
+        String candidates = BASE + "/candidates";
+        jdbc.update("UPDATE lessons SET status='COMPLETED'");
+        jdbc.update("UPDATE candidates SET required_driving_hours=1 WHERE id=?", id(CANDIDATE));
+        for (int i = 0; i < 2; i++) {
+            jdbc.update("""
+                INSERT INTO lessons (id, school_id, candidate_id, instructor_profile_id, driving_category_id,
+                    lesson_type, status, start_at, end_at, created_by_role, created_at, updated_at)
+                SELECT ?, school_id, candidate_id, instructor_profile_id, driving_category_id,
+                    lesson_type, status, start_at, end_at, created_by_role, created_at, updated_at
+                FROM lessons WHERE id=?
+                """, UUID.randomUUID(), id(LESSON));
+        }
+        read(candidates + "/" + CANDIDATE, adminToken)
+            .andExpect(status().isOk()).andExpect(jsonPath("$.completedDrivingHours").value(3))
+            .andExpect(jsonPath("$.requiredDrivingHours").value(1));
+        read(candidates + "?q=Ana", adminToken).andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].completedDrivingHours").value(3));
+        for (String excludedStatus : List.of("REQUESTED", "CONFIRMED", "CANCELLED", "NO_SHOW")) {
+            jdbc.update("UPDATE lessons SET status=? WHERE candidate_id=?", excludedStatus, id(CANDIDATE));
+            read(candidates + "?q=Ana", adminToken).andExpect(jsonPath("$[0].completedDrivingHours").value(0));
+        }
+        jdbc.update("UPDATE lessons SET status='COMPLETED',lesson_type='THEORY' WHERE candidate_id=?", id(CANDIDATE));
+        read(candidates + "?q=Ana", adminToken).andExpect(jsonPath("$[0].completedDrivingHours").value(0));
+        jdbc.update("UPDATE lessons SET lesson_type='DRIVING',school_id=? WHERE candidate_id=?", id(OTHER_SCHOOL), id(CANDIDATE));
+        read(candidates + "?q=Ana", adminToken).andExpect(jsonPath("$[0].completedDrivingHours").value(0));
+        jdbc.update("UPDATE lessons SET school_id=? WHERE candidate_id=?", id(SCHOOL), id(CANDIDATE));
+        UUID category = UUID.randomUUID();
+        jdbc.update("INSERT INTO driving_categories (id,code,name,active) VALUES (?,'A','Motorcycle',true)", category);
+        jdbc.update("UPDATE candidates SET driving_category_id=? WHERE id=?", category, id(CANDIDATE));
+        read(candidates + "?q=Ana", adminToken).andExpect(jsonPath("$[0].completedDrivingHours").value(0));
+        read(candidates + "/" + CANDIDATE, adminToken).andExpect(jsonPath("$.completedDrivingHours").value(0));
+        read("/api/schools/" + OTHER_SCHOOL + "/candidates/" + CANDIDATE, adminToken).andExpect(status().isForbidden());
+        read(candidates, candidateToken).andExpect(status().isForbidden());
+    }
+
+    @Test
     void simultaneousCandidateAndInstructorReservationsHaveOneWinner() throws Exception {
         Instant start = future();
         assertRace(

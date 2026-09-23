@@ -16,6 +16,7 @@ import '../features/candidates/data/repositories/candidates_repository_impl.dart
 import '../features/candidates/domain/repositories/candidates_repository.dart';
 import '../features/candidates/domain/usecases/create_candidate.dart';
 import '../features/candidates/domain/usecases/list_candidates.dart';
+import '../features/candidates/domain/usecases/load_candidate.dart';
 import '../features/candidates/domain/usecases/update_candidate.dart';
 import '../features/dashboard/data/datasources/school_overview_remote_data_source.dart';
 import '../features/dashboard/data/repositories/school_overview_repository_impl.dart';
@@ -99,6 +100,9 @@ void configureDependencies() {
     )
     ..registerLazySingleton<CandidatesRepository>(
       () => CandidatesRepositoryImpl(getIt<CandidatesRemoteDataSource>()),
+    )
+    ..registerLazySingleton<LoadCandidate>(
+      () => LoadCandidate(getIt<CandidatesRepository>()),
     )
     ..registerLazySingleton<ListCandidates>(
       () => ListCandidates(getIt<CandidatesRepository>()),
