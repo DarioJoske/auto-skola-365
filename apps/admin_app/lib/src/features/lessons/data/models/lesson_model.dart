@@ -20,6 +20,7 @@ class LessonModel {
     required this.cancelledAt,
     required this.notes,
     required this.createdByRole,
+    this.completionNote,
   });
 
   factory LessonModel.fromJson(Map<String, dynamic> json) {
@@ -42,6 +43,7 @@ class LessonModel {
       cancelledAt: _parseOptionalDate(json['cancelledAt']),
       notes: json['notes'] as String?,
       createdByRole: json['createdByRole'] as String,
+      completionNote: json['completionNote'] as String?,
     );
   }
 
@@ -63,6 +65,7 @@ class LessonModel {
   final DateTime? cancelledAt;
   final String? notes;
   final String createdByRole;
+  final String? completionNote;
 
   Lesson toEntity() {
     return Lesson(
@@ -84,6 +87,7 @@ class LessonModel {
       cancelledAt: cancelledAt,
       notes: notes,
       createdByRole: createdByRole,
+      completionNote: completionNote,
     );
   }
 

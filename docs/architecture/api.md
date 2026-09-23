@@ -264,10 +264,21 @@ Response:
     "categoryName": "Passenger car",
     "assignedInstructorId": "uuid",
     "assignedInstructorName": "Ivan Ivic",
-    "notes": "Prvi kandidat"
+    "notes": "Prvi kandidat",
+    "requiredDrivingHours": 35,
+    "completedDrivingHours": 0,
+    "hasLogin": false,
+    "loginEmail": null
   }
 ]
 ```
+
+Candidate list, detail, create and update responses include `completedDrivingHours`:
+the uncapped backend count of `COMPLETED` `DRIVING` lessons in the same school
+and candidate's current category. `requiredDrivingHours` is the nullable positive
+target, not an exam-readiness assessment. List totals use a school-scoped aggregate.
+`email` is contact information; `loginEmail` belongs to the linked account and
+is not changed by contact edits. See [admin candidate screens](../development/admin-candidates.md).
 
 ```http
 POST /api/schools/{schoolId}/candidates

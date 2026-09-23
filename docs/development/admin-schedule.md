@@ -54,8 +54,8 @@ postavki; kompatibilna ruta `/settings` ostaje dostupna.
 | A02 Tjedni raspored | `/lessons` | Redizajn #7 |
 | A03 Novi termin | `/lessons/new`, gumb u rasporedu | Obrazac #7 |
 | A04 Kandidati | `/candidates` | Postojeća implementacija |
-| A05 Profil kandidata | `/candidates/:candidateId` | Placeholder; postojeće uređivanje/sati ostaju u dijalogu popisa |
-| A06 Upis kandidata | `/candidates/new` | Placeholder samostalnog ekrana; stvarni upis ostaje u dijalogu popisa |
+| A05 Profil kandidata | `/candidates/:candidateId` | Implementirano u [tasku #8](admin-candidates.md): profil, sati i mjesečna evidencija vožnji |
+| A06 Upis kandidata | `/candidates/new` | Implementirano u [tasku #8](admin-candidates.md): samostalni upis uz aktivaciju lozinkom |
 | A07 Instruktori | `/instructors` | Postojeća implementacija |
 | A08 Ispiti | `/exams` | Placeholder |
 | A09 Vozni park | `/fleet` | Placeholder |

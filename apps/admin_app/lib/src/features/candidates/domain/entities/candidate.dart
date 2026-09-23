@@ -14,6 +14,7 @@ class Candidate {
     required this.assignedInstructorName,
     required this.notes,
     this.requiredDrivingHours,
+    this.completedDrivingHours,
     this.hasLogin = false,
     this.loginEmail,
   });
@@ -32,6 +33,7 @@ class Candidate {
   final String? assignedInstructorName;
   final String? notes;
   final int? requiredDrivingHours;
+  final int? completedDrivingHours;
   final bool hasLogin;
   final String? loginEmail;
 

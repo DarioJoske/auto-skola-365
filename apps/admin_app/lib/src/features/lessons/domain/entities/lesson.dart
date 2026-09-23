@@ -18,6 +18,7 @@ class Lesson {
     required this.cancelledAt,
     required this.notes,
     required this.createdByRole,
+    this.completionNote,
   });
 
   final String id;
@@ -38,4 +39,5 @@ class Lesson {
   final DateTime? cancelledAt;
   final String? notes;
   final String createdByRole;
+  final String? completionNote;
 }

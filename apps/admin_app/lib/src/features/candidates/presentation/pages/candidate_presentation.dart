@@ -1,3 +1,5 @@
+import 'package:auto_skola_design_system/design_system.dart';
+
 const candidateStatuses = [
   'LEAD',
   'ENROLLED',
@@ -24,13 +26,21 @@ String candidateStatusLabel(String status) {
     'LEAD' => 'Lead',
     'ENROLLED' => 'Upisan',
     'IN_THEORY' => 'Na teoriji',
-    'PASSED_THEORY' => 'Polozio teoriju',
-    'IN_DRIVING' => 'Na voznji',
+    'PASSED_THEORY' => 'Položio teoriju',
+    'IN_DRIVING' => 'Na vožnji',
     'READY_FOR_EXAM' => 'Spreman za ispit',
     'EXAM_SCHEDULED' => 'Ispit zakazan',
-    'PASSED' => 'Polozio',
+    'PASSED' => 'Položio',
     'DROPPED' => 'Odustao',
     'ARCHIVED' => 'Arhiviran',
     _ => status,
   };
 }
+
+AppTone candidateStatusTone(String status) => switch (status) {
+  'PASSED' => AppTone.success,
+  'READY_FOR_EXAM' || 'EXAM_SCHEDULED' => AppTone.warning,
+  'DROPPED' => AppTone.error,
+  'ARCHIVED' || 'LEAD' => AppTone.neutral,
+  _ => AppTone.info,
+};

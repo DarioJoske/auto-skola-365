@@ -1,3 +1,7 @@
+import '../app_dependencies.dart';
+import '../../features/candidates/domain/usecases/load_candidate.dart';
+import '../../features/candidates/presentation/pages/candidate_profile_page.dart';
+import '../../features/candidates/presentation/pages/candidate_enrollment_page.dart';
 import 'planned_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -105,6 +109,27 @@ GoRouter createAppRouter({
               ),
             ),
           ),
+          for (final path in ['/candidates/new', '/candidates/:candidateId'])
+            GoRoute(
+              path: path,
+              pageBuilder: (context, state) => _noTransitionPage(
+                state,
+                CandidatesPage(
+                  key: ValueKey(state.uri.path),
+                  listCandidates: listCandidates,
+                  listInstructors: listInstructors,
+                  createCandidate: createCandidate,
+                  updateCandidate: updateCandidate,
+                  child: path == '/candidates/new'
+                      ? const CandidateEnrollmentPage()
+                      : CandidateProfilePage(
+                          candidateId: state.pathParameters['candidateId']!,
+                          loadCandidate: getIt<LoadCandidate>(),
+                          listLessons: listLessons,
+                        ),
+                ),
+              ),
+            ),
           GoRoute(
             path: '/instructors',
             pageBuilder: (context, state) => _noTransitionPage(

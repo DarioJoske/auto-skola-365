@@ -15,6 +15,24 @@ class CandidatesRepositoryImpl implements CandidatesRepository {
   final CandidatesRemoteDataSource _remoteDataSource;
 
   @override
+  FutureResult<Candidate> get({
+    required String schoolId,
+    required String accessToken,
+    required String candidateId,
+  }) async {
+    try {
+      final candidate = await _remoteDataSource.get(
+        schoolId: schoolId,
+        accessToken: accessToken,
+        candidateId: candidateId,
+      );
+      return success(candidate.toEntity());
+    } catch (error) {
+      return failure(Failure.fromException(error));
+    }
+  }
+
+  @override
   FutureResult<List<Candidate>> list({
     required String schoolId,
     required String accessToken,
