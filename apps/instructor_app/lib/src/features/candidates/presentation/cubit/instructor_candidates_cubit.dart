@@ -1,4 +1,4 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bloc/bloc.dart';
 
 import '../../../../core/api/result_extensions.dart';
 import '../../domain/usecases/list_instructor_candidates.dart';
@@ -44,6 +44,9 @@ class InstructorCandidatesCubit extends Cubit<InstructorCandidatesState> {
         emit(
           state.copyWith(
             status: InstructorCandidatesStatus.failure,
+            candidates: [401, 403].contains(failure.statusCode)
+                ? const []
+                : state.candidates,
             errorMessage: failure.message,
             errorStatusCode: failure.statusCode,
             errorEventId: state.errorEventId + 1,
@@ -56,7 +59,7 @@ class InstructorCandidatesCubit extends Cubit<InstructorCandidatesState> {
         emit(
           state.copyWith(
             status: InstructorCandidatesStatus.loaded,
-            candidates: sorted,
+            candidates: List.unmodifiable(sorted),
             errorMessage: null,
             errorStatusCode: null,
           ),

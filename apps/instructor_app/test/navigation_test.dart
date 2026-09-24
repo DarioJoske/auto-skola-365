@@ -26,6 +26,10 @@ void main() {
               routes: [
                 ...plannedRoutes(),
                 GoRoute(
+                  path: '/home',
+                  builder: (_, state) => const Text('Dnevni pregled'),
+                ),
+                GoRoute(
                   path: '/',
                   builder: (_, state) => const Text('Moj raspored'),
                 ),
@@ -73,7 +77,7 @@ void main() {
           );
           await tester.pumpAndSettle();
           expect(router.routeInformationProvider.value.uri.path, entry.value);
-          if (entry.key == 'Danas' || entry.key == 'Poruke') {
+          if (entry.key == 'Poruke') {
             expect(find.text('U pripremi'), findsOneWidget);
           }
           if (entry.key == 'Profil') {

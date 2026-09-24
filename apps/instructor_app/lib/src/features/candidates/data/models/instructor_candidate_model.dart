@@ -2,6 +2,7 @@ import '../../domain/entities/instructor_candidate.dart';
 
 class InstructorCandidateModel {
   const InstructorCandidateModel({
+    this.completedDrivingHours = 0,
     required this.id,
     required this.schoolId,
     required this.firstName,
@@ -19,6 +20,7 @@ class InstructorCandidateModel {
 
   factory InstructorCandidateModel.fromJson(Map<String, dynamic> json) {
     return InstructorCandidateModel(
+      completedDrivingHours: (json['completedDrivingHours'] as num).toInt(),
       id: json['id'] as String,
       schoolId: json['schoolId'] as String,
       firstName: json['firstName'] as String,
@@ -35,6 +37,7 @@ class InstructorCandidateModel {
     );
   }
 
+  final int completedDrivingHours;
   final String id;
   final String schoolId;
   final String firstName;
@@ -51,6 +54,7 @@ class InstructorCandidateModel {
 
   InstructorCandidate toEntity() {
     return InstructorCandidate(
+      completedDrivingHours: completedDrivingHours,
       id: id,
       schoolId: schoolId,
       firstName: firstName,

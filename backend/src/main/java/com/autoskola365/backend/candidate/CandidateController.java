@@ -67,6 +67,15 @@ public class CandidateController {
         );
     }
 
+    @GetMapping("/instructor/{candidateId}")
+    public CandidateResponse getInstructorCandidate(
+        @PathVariable UUID schoolId,
+        @PathVariable UUID candidateId,
+        @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        return candidateService.getInstructorCandidate(schoolId, candidateId, authenticatedUser);
+    }
+
     @GetMapping("/{candidateId}")
     public CandidateResponse get(
         @PathVariable UUID schoolId,

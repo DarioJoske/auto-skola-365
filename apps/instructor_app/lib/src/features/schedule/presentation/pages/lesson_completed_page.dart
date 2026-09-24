@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import '../widgets/lesson_scope.dart';
-import 'lesson_detail_view.dart';
+import 'lesson_completed_view.dart';
 
-final class LessonDetailPage extends StatelessWidget {
-  const LessonDetailPage({required this.lessonId, super.key});
+final class LessonCompletedPage extends StatelessWidget {
+  const LessonCompletedPage({required this.lessonId, super.key});
   final String lessonId;
   @override
   Widget build(BuildContext context) => LessonScope(
     lessonId: lessonId,
     loadProgress: true,
-    child: const LessonDetailView(),
+    child: const LessonCompletedView(),
   );
 }

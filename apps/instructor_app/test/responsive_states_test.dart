@@ -1,13 +1,13 @@
 import 'package:auto_skola_365_instructor_app/src/features/candidates/presentation/cubit/instructor_candidates_cubit.dart';
 import 'package:auto_skola_365_instructor_app/src/features/candidates/presentation/cubit/instructor_candidates_state.dart';
-import 'package:auto_skola_365_instructor_app/src/features/candidates/presentation/pages/instructor_candidates_page.dart';
+import 'package:auto_skola_365_instructor_app/src/features/candidates/presentation/pages/instructor_candidates_view.dart';
 import 'package:auto_skola_365_instructor_app/src/features/candidates/domain/entities/instructor_candidate.dart';
 import 'package:auto_skola_design_system/design_system.dart';
 import 'package:auto_skola_365_instructor_app/src/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:auto_skola_365_instructor_app/src/features/auth/presentation/cubit/auth_state.dart';
 import 'package:auto_skola_365_instructor_app/src/features/schedule/presentation/cubit/schedule_cubit.dart';
 import 'package:auto_skola_365_instructor_app/src/features/schedule/presentation/cubit/schedule_state.dart';
-import 'package:auto_skola_365_instructor_app/src/features/schedule/presentation/pages/schedule_page.dart';
+import 'package:auto_skola_365_instructor_app/src/features/schedule/presentation/pages/schedule_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -174,7 +174,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(find.text('Dnevni raspored'), findsOneWidget);
+        expect(find.text('Moj raspored'), findsOneWidget);
         expect(tester.takeException(), isNull);
         cubit.fail();
         await tester.pumpAndSettle();

@@ -1,3 +1,4 @@
+import 'package:auto_skola_design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -5,7 +6,8 @@ import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../bloc/progress_cubit.dart';
 
 final class DrivingHoursPanel extends StatelessWidget {
-  const DrivingHoursPanel({super.key});
+  const DrivingHoursPanel({this.emphasized = false, super.key});
+  final bool emphasized;
 
   @override
   Widget build(
@@ -28,81 +30,65 @@ final class DrivingHoursPanel extends StatelessWidget {
       final data = state.data;
       final target = data?.requiredDrivingHours;
       final hasTarget = target != null && target > 0;
-      final colors = Theme.of(context).colorScheme;
-      final textTheme = Theme.of(context).textTheme;
-
-      return Card(
-        margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Odrađeni sati vožnje', style: textTheme.titleMedium),
-              const SizedBox(height: 12),
-              if (state.loading) ...[
-                const LinearProgressIndicator(),
-                const SizedBox(height: 12),
-              ],
-              if (state.loadFailure != null) ...[
-                Text(
-                  state.loadFailure!.statusCode == 401
-                      ? 'Sesija je istekla. Prijavite se ponovno.'
-                      : state.loadFailure!.message,
-                  style: TextStyle(color: colors.error),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (state.loading && data == null) const AppLoadingState(),
+          if (state.loadFailure != null)
+            AppInlineError(
+              message: state.loadFailure!.statusCode == 401
+                  ? 'Sesija je istekla. Prijavite se ponovno.'
+                  : state.loadFailure!.message,
+              onRetry: () => context.read<ProgressCubit>().load(),
+            ),
+          if (data != null)
+            if (emphasized)
+              AppProgressCard(
+                title: 'EVIDENCIJA VOŽNJE',
+                valueLabel: hasTarget
+                    ? '${data.completedDrivingHours} / $target'
+                    : '${data.completedDrivingHours}',
+                subtitle: 'evidentiranih školskih sati · ${data.categoryCode}',
+                message: hasTarget
+                    ? 'Spremnost za ispit procjenjuje instruktor.'
+                    : 'Cilj sati nije postavljen. Spremnost za ispit procjenjuje instruktor.',
+                progress: hasTarget
+                    ? data.completedDrivingHours / target
+                    : null,
+                isLoading: state.loading,
+              )
+            else
+              AppListItem(
+                leading: CircleAvatar(
+                  child: Text('${data.completedDrivingHours}'),
                 ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: state.loading
-                        ? null
-                        : () => context.read<ProgressCubit>().load(),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Pokušaj ponovno'),
-                  ),
-                ),
-              ],
-              if (data != null) ...[
-                Text(
-                  '${data.candidateName} · ${data.categoryCode}',
-                  style: textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  hasTarget
-                      ? '${data.completedDrivingHours}/$target sati odrađeno'
-                      : '${data.completedDrivingHours} sati odrađeno',
-                  style: textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                if (hasTarget) ...[
-                  const SizedBox(height: 16),
-                  LinearProgressIndicator(
-                    value: (data.completedDrivingHours / target).clamp(
-                      0.0,
-                      1.0,
+                title: hasTarget
+                    ? '${data.completedDrivingHours}/$target sati odrađeno'
+                    : '${data.completedDrivingHours} sati odrađeno',
+                subtitle: '${data.candidateName} · ${data.categoryCode}',
+                trailing: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      hasTarget
+                          ? 'Broje se samo dovršene vožnje.'
+                          : 'Cilj sati nije postavljen.',
                     ),
-                    minHeight: 8,
-                    borderRadius: BorderRadius.circular(4),
-                    semanticsLabel: 'Odrađeni nastavni sati',
-                    semanticsValue: '${data.completedDrivingHours} od $target',
-                  ),
-                ] else ...[
-                  const SizedBox(height: 8),
-                  const Text('Cilj sati nije postavljen.'),
-                ],
-                const SizedBox(height: 12),
-                Text(
-                  'Broje se samo dovršene vožnje.',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
+                    if (hasTarget || state.loading) ...[
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: state.loading
+                            ? null
+                            : (data.completedDrivingHours / target!).clamp(
+                                0.0,
+                                1.0,
+                              ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ],
-          ),
-        ),
+              ),
+        ],
       );
     },
   );

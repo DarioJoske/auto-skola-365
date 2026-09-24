@@ -64,19 +64,21 @@ postavki; kompatibilna ruta `/settings` ostaje dostupna.
 | A12 Poruke | `/messages` | Placeholder |
 | A13 Postavke škole | `/settings` | Dorađen postojeći placeholder |
 
+Instruktorski dio ažuriran prema [tasku #9](instructor-daily-work.md).
+
 | Instruktor dizajn | Ruta / ulaz | Stanje |
 | --- | --- | --- |
-| I01 Početna | `/home` | Placeholder |
-| I02 Moj raspored | `/` | Postojeća implementacija |
-| I03 Detalj vožnje | `/lessons/:lessonId` | Postojeća implementacija |
-| I04 Završi sat | `/lessons/:lessonId/complete` | Placeholder samostalnog ekrana; stvarno završavanje ostaje u detalju |
-| I05 Moji kandidati | `/candidates` | Postojeća implementacija |
-| I06 Profil kandidata | `/candidates/:candidateId` | Placeholder; postojeća evidencija na `/candidates/:id/progress` |
+| I01 Početna | `/home` | Dnevni pregled i nadolazeće vožnje (#9) |
+| I02 Moj raspored | `/` | Dnevne/tjedne kartice sa statusima (#9) |
+| I03 Detalj vožnje | `/lessons/:lessonId` | Redizajn i povezano zaključivanje (#9) |
+| I04 Završi sat | `/lessons/:lessonId/complete` | Samostalni obrazac interne bilješke (#9) |
+| I05 Moji kandidati | `/candidates` | Kartice s odrađenim satima i profilom (#9) |
+| I06 Profil kandidata | `/candidates/:candidateId` | Sati, kontakt, rezervacija i vlastita povijest (#9) |
 | I07 Zahtjev termina | `/lessons/:lessonId/request` | Placeholder samostalnog ekrana; radnje ostaju u detalju |
 | I08 Moja dostupnost | `/availability` | Placeholder |
 | I09 Poruke | `/messages` | Placeholder |
 | I10 Moj profil | `/profile` | Postojeći podaci profila; kompatibilna ruta `/settings` |
-| I11 Sat je evidentiran | `/lessons/:lessonId/completed` | Placeholder; otvaranje ne evidentira sat |
+| I11 Sat je evidentiran | `/lessons/:lessonId/completed` | Provjerena potvrda uz ponovni dohvat sati (#9) |
 
 | Kandidat dizajn | Ruta / ulaz | Stanje |
 | --- | --- | --- |

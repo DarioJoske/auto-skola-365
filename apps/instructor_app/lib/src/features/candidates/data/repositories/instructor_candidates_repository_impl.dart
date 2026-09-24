@@ -11,6 +11,24 @@ class InstructorCandidatesRepositoryImpl
     implements InstructorCandidatesRepository {
   const InstructorCandidatesRepositoryImpl(this._remoteDataSource);
 
+  @override
+  FutureEither<InstructorCandidate> get({
+    required String schoolId,
+    required String accessToken,
+    required String candidateId,
+  }) async {
+    try {
+      final result = await _remoteDataSource.get(
+        schoolId: schoolId,
+        accessToken: accessToken,
+        candidateId: candidateId,
+      );
+      return Right(result.toEntity());
+    } catch (error) {
+      return Left(Failure.fromException(error));
+    }
+  }
+
   final InstructorCandidatesRemoteDataSource _remoteDataSource;
 
   @override

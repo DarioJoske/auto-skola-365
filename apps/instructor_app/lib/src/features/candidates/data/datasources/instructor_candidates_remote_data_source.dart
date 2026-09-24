@@ -5,6 +5,18 @@ import '../models/instructor_candidate_model.dart';
 class InstructorCandidatesRemoteDataSource {
   const InstructorCandidatesRemoteDataSource(this._apiClient);
 
+  Future<InstructorCandidateModel> get({
+    required String schoolId,
+    required String accessToken,
+    required String candidateId,
+  }) async {
+    final json = await _apiClient.getJson(
+      '/api/schools/$schoolId/candidates/instructor/$candidateId',
+      accessToken: accessToken,
+    );
+    return InstructorCandidateModel.fromJson(json as Map<String, dynamic>);
+  }
+
   final ApiClient _apiClient;
 
   Future<List<InstructorCandidateModel>> list({

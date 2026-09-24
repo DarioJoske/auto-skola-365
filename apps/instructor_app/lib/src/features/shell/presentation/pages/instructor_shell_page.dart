@@ -13,6 +13,7 @@ final class InstructorShellPage extends StatelessWidget {
     final selectedIndex = switch (location) {
       final value when value.startsWith('/candidates') => 2,
       '/home' => 0,
+      final value when value.startsWith('/lessons') => 0,
       '/messages' => 3,
       '/profile' || '/settings' || '/availability' => 4,
       _ => 1,

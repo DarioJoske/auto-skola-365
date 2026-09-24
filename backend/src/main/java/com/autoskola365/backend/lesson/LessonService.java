@@ -140,6 +140,21 @@ public class LessonService {
     }
 
     @Transactional(readOnly = true)
+    public List<LessonResponse> instructorCandidateHistory(UUID schoolId, UUID candidateId, AuthenticatedUser user) {
+        requireInstructorLessonAccess(schoolId, user);
+        InstructorProfile instructor = getInstructorForUser(schoolId, user);
+        Candidate candidate = candidateRepository.findByIdAndSchoolId(candidateId, schoolId)
+            .orElseThrow(() -> new CandidateNotFoundException("Candidate does not exist."));
+        if (!instructor.isActive() || candidate.getAssignedInstructor() == null
+            || !candidate.getAssignedInstructor().getId().equals(instructor.getId())) {
+            throw new LessonAccessDeniedException("User cannot access this candidate.");
+        }
+        return lessonRepository.findBySchoolIdAndCandidateIdAndInstructorIdOrderByStartAtDesc(
+                schoolId, candidateId, instructor.getId()).stream()
+            .map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
     public LessonResponse getInstructorLesson(
         UUID schoolId,
         UUID lessonId,

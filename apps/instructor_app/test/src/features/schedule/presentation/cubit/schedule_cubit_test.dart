@@ -1,3 +1,5 @@
+import 'package:bloc_test/bloc_test.dart';
+import 'package:auto_skola_365_instructor_app/src/features/schedule/presentation/cubit/schedule_state.dart';
 import 'package:auto_skola_365_instructor_app/src/features/schedule/domain/entities/reserve_lesson.dart';
 import 'dart:async';
 
@@ -31,6 +33,53 @@ void main() {
     if (!cubit.isClosed) await cubit.close();
   });
 
+  test('initial schedule state has no data or active mutation', () {
+    expect(cubit.state.status, ScheduleStatus.initial);
+    expect(cubit.state.lessons, isEmpty);
+    expect(cubit.state.actionLessonId, isNull);
+  });
+  blocTest<ScheduleCubit, ScheduleState>(
+    'confirmation invalidates an older load and always finishes loading',
+    build: () => cubit,
+    act: (cubit) async {
+      final initial = cubit.load();
+      repository.requests[0].complete(Right([lesson('one', 'REQUESTED')]));
+      await initial;
+      final stale = cubit.load();
+      final confirm = cubit.confirmLesson('one');
+      await cubit.load();
+      repository.confirmation.complete(Right(lesson('one', 'CONFIRMED')));
+      await confirm;
+      repository.requests[1].complete(Right([lesson('one', 'REQUESTED')]));
+      await stale;
+    },
+    expect: () => [
+      isA<ScheduleState>().having(
+        (s) => s.status,
+        'loading',
+        ScheduleStatus.loading,
+      ),
+      isA<ScheduleState>().having(
+        (s) => s.lessons.single.status,
+        'initial',
+        'REQUESTED',
+      ),
+      isA<ScheduleState>().having(
+        (s) => s.status,
+        'refreshing',
+        ScheduleStatus.loading,
+      ),
+      isA<ScheduleState>().having((s) => s.actionLessonId, 'action', 'one'),
+      isA<ScheduleState>()
+          .having((s) => s.status, 'loaded', ScheduleStatus.loaded)
+          .having((s) => s.lessons.single.status, 'confirmed', 'CONFIRMED'),
+    ],
+    verify: (_) {
+      expect(repository.confirmCalls, 1);
+      expect(repository.requests.length, 2);
+    },
+  );
+
   test('a late response cannot overwrite a newer status filter', () async {
     final first = cubit.load();
     final second = cubit.filterStatus('CONFIRMED');
@@ -59,10 +108,10 @@ void main() {
       repository.requests.single.complete(Right([lesson('one', 'REQUESTED')]));
       await load;
       final confirmation = cubit.confirmLesson('one');
-      expect(await cubit.confirmLesson('one'), isFalse);
+      await cubit.confirmLesson('one');
       expect(repository.confirmCalls, 1);
       repository.confirmation.complete(Right(lesson('one', 'CONFIRMED')));
-      expect(await confirmation, isTrue);
+      await confirmation;
       expect(cubit.state.lessons, isEmpty);
       expect(cubit.state.actionLessonId, isNull);
     },
@@ -78,7 +127,7 @@ void main() {
       repository.confirmation.complete(
         const Left(Failure('Termin se preklapa.', statusCode: 409)),
       );
-      expect(await confirmation, isFalse);
+      await confirmation;
       expect(cubit.state.lessons.single.status, 'REQUESTED');
       expect(cubit.state.errorMessage, 'Termin se preklapa.');
       expect(cubit.state.errorStatusCode, 409);
@@ -87,7 +136,8 @@ void main() {
   );
 }
 
-class PendingLessonsRepository implements InstructorLessonsRepository {
+class PendingLessonsRepository extends Fake
+    implements InstructorLessonsRepository {
   @override
   FutureEither<InstructorLesson> reserve({
     required String schoolId,
