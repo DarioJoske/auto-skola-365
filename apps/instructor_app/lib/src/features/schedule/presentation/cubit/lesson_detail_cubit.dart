@@ -61,6 +61,7 @@ class LessonDetailCubit extends Cubit<LessonDetailState> {
         emit(
           state.copyWith(
             status: LessonDetailStatus.failure,
+            clearLesson: [401, 403, 404].contains(failure.statusCode),
             errorMessage: failure.message,
             errorStatusCode: failure.statusCode,
             errorEventId: state.errorEventId + 1,
@@ -80,15 +81,18 @@ class LessonDetailCubit extends Cubit<LessonDetailState> {
     );
   }
 
-  Future<void> completeLesson(String? note) => _runLessonAction(
-    successMessage: 'Sat je označen kao odrađen.',
-    action: () => _completeInstructorLesson(
-      schoolId: _schoolId,
-      accessToken: _accessToken,
-      lessonId: _lessonId,
-      note: note,
-    ),
-  );
+  Future<void> completeLesson(String? note) {
+    if (state.lesson?.status == 'COMPLETED') return Future.value();
+    return _runLessonAction(
+      successMessage: 'Sat je označen kao odrađen.',
+      action: () => _completeInstructorLesson(
+        schoolId: _schoolId,
+        accessToken: _accessToken,
+        lessonId: _lessonId,
+        note: note,
+      ),
+    );
+  }
 
   Future<void> confirmLesson() {
     return _runLessonAction(
@@ -136,6 +140,7 @@ class LessonDetailCubit extends Cubit<LessonDetailState> {
                 ? LessonDetailStatus.failure
                 : LessonDetailStatus.loaded,
             actionInProgress: false,
+            clearLesson: [401, 403, 404].contains(failure.statusCode),
             errorMessage: failure.message,
             errorStatusCode: failure.statusCode,
             errorEventId: state.errorEventId + 1,

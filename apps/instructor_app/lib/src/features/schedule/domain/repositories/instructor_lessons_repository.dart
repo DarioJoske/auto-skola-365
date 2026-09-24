@@ -4,6 +4,12 @@ import '../entities/instructor_lesson.dart';
 import '../entities/instructor_lesson_filters.dart';
 
 abstract interface class InstructorLessonsRepository {
+  FutureEither<List<InstructorLesson>> history({
+    required String schoolId,
+    required String accessToken,
+    required String candidateId,
+  });
+
   FutureEither<InstructorLesson> reserve({
     required String schoolId,
     required String accessToken,

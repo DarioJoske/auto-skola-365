@@ -366,6 +366,30 @@ nullable `branchName`, ordered by start time descending. The response excludes
 internal candidate notes, lesson notes and completion notes. A missing linked
 candidate or access to another school returns `403`.
 
+### Instruktorov profil kandidata i povijest (#9)
+
+```http
+GET /api/schools/{schoolId}/candidates/instructor
+GET /api/schools/{schoolId}/candidates/instructor/{candidateId}
+GET /api/schools/{schoolId}/lessons/instructor/candidates/{candidateId}
+Authorization: Bearer <accessToken>
+```
+
+Potrebni su aktivno članstvo s `lessons.view_assigned` i aktivan instruktorski
+profil vezan uz prijavljenog korisnika u navedenoj školi. Kandidat mora biti
+aktualno dodijeljen tom instruktoru. Popis prihvaća `q`, `status`, `categoryCode`.
+Detalj vraća postojeći `CandidateResponse`, uključujući `completedDrivingHours`.
+Povijest vraća `LessonResponse[]` svih statusa i kategorija silazno po `startAt`,
+isključivo za termine tog instruktora i kandidata; uključuje interne bilješke.
+Ne koristi zadani datumski raspon rasporeda. Nakon promjene dodjele novi instruktor
+ne dobiva povijest niti bilješke prethodnog instruktora kroz ovaj endpoint.
+
+Nedopuštena škola/ovlast/dodjela ili neaktivan profil daju strukturirani `403`,
+a kandidat koji ne postoji u dopuštenoj školi `404`. Ove read-only rute ne
+proširuju pravo završavanja tuđe vožnje. Ukupni sati i dalje uključuju sve
+dovršene vožnje aktualne kategorije, ne samo instruktorovu povijest.
+Detalji UI toka su u [instruktorskom dnevnom radu](../development/instructor-daily-work.md).
+
 ## Instructors
 
 Instructors are school-scoped. The authenticated user must have an active

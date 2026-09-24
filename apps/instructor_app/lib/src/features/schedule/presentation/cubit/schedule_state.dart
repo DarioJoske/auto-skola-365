@@ -29,7 +29,7 @@ class ScheduleState {
       rangeMode: ScheduleRangeMode.day,
       filters: InstructorLessonFilters(
         from: today,
-        to: today.add(const Duration(days: 1)),
+        to: DateTime(today.year, today.month, today.day + 1),
       ),
     );
   }

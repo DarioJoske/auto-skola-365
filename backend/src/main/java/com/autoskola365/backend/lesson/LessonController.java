@@ -55,6 +55,15 @@ public class LessonController {
         return lessonService.listInstructorLessons(schoolId, from, to, status, authenticatedUser);
     }
 
+    @GetMapping("/instructor/candidates/{candidateId}")
+    public List<LessonResponse> instructorCandidateHistory(
+        @PathVariable UUID schoolId,
+        @PathVariable UUID candidateId,
+        @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        return lessonService.instructorCandidateHistory(schoolId, candidateId, authenticatedUser);
+    }
+
     @GetMapping("/instructor/{lessonId}")
     public LessonResponse getInstructorLesson(
         @PathVariable UUID schoolId,

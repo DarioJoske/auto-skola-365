@@ -13,6 +13,24 @@ import '../models/instructor_lesson_model.dart';
 class InstructorLessonsRepositoryImpl implements InstructorLessonsRepository {
   const InstructorLessonsRepositoryImpl(this._remoteDataSource);
 
+  @override
+  FutureEither<List<InstructorLesson>> history({
+    required String schoolId,
+    required String accessToken,
+    required String candidateId,
+  }) async {
+    try {
+      final result = await _remoteDataSource.history(
+        schoolId: schoolId,
+        accessToken: accessToken,
+        candidateId: candidateId,
+      );
+      return Right(result.map((item) => item.toEntity()).toList());
+    } catch (error) {
+      return Left(Failure.fromException(error));
+    }
+  }
+
   final InstructorLessonsRemoteDataSource _remoteDataSource;
 
   @override

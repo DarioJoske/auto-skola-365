@@ -110,6 +110,18 @@ public class CandidateService {
     }
 
     @Transactional(readOnly = true)
+    public CandidateResponse getInstructorCandidate(UUID schoolId, UUID candidateId, AuthenticatedUser user) {
+        requireInstructorAccess(schoolId, user);
+        InstructorProfile instructor = getInstructorForUser(schoolId, user);
+        Candidate candidate = candidateRepository.findByIdAndSchoolId(candidateId, schoolId)
+            .orElseThrow(() -> new CandidateNotFoundException("Candidate does not exist."));
+        if (!matchesAssignedInstructor(candidate, instructor.getId())) {
+            throw new CandidateAccessDeniedException("User cannot access this candidate.");
+        }
+        return toResponse(candidate);
+    }
+
+    @Transactional(readOnly = true)
     public CandidateResponse get(UUID schoolId, UUID candidateId, AuthenticatedUser authenticatedUser) {
         requirePermission(schoolId, authenticatedUser);
 
@@ -261,6 +273,7 @@ public class CandidateService {
 
     private InstructorProfile getInstructorForUser(UUID schoolId, AuthenticatedUser authenticatedUser) {
         return instructorRepository.findBySchoolMembershipSchoolIdAndSchoolMembershipUserId(schoolId, authenticatedUser.userId())
+            .filter(InstructorProfile::isActive)
             .orElseThrow(() -> new CandidateAccessDeniedException("User is not an instructor for this school."));
     }
 

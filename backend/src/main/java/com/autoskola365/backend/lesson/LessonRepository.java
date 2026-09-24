@@ -40,6 +40,10 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
 
     List<Lesson> findBySchoolIdAndCandidateIdOrderByStartAtDesc(UUID schoolId, UUID candidateId);
 
+    @EntityGraph(attributePaths = {"school", "candidate", "instructor.schoolMembership.user", "drivingCategory", "branch"})
+    List<Lesson> findBySchoolIdAndCandidateIdAndInstructorIdOrderByStartAtDesc(
+        UUID schoolId, UUID candidateId, UUID instructorId);
+
     long countBySchoolIdAndCandidateIdAndDrivingCategoryIdAndStatusAndLessonType(
         UUID schoolId, UUID candidateId, UUID drivingCategoryId, String status, String lessonType
     );

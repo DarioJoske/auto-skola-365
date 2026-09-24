@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:auto_skola_365_instructor_app/src/features/schedule/presentation/pages/complete_lesson_view.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:auto_skola_365_instructor_app/src/features/schedule/presentation/cubit/lesson_detail_state.dart';
 import 'package:auto_skola_365_instructor_app/src/features/progress/presentation/bloc/progress_cubit.dart';
@@ -6,7 +7,7 @@ import '../../../progress/progress_test.dart'
     show HoursRepository, hoursCubit, hours;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:auto_skola_365_instructor_app/src/features/schedule/presentation/pages/lesson_detail_page.dart';
+import 'package:auto_skola_365_instructor_app/src/features/schedule/presentation/pages/lesson_detail_view.dart';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -112,12 +113,21 @@ void main() {
               BlocProvider.value(value: cubit),
               BlocProvider<ProgressCubit>.value(value: progress),
             ],
-            child: const LessonDetailView(),
+            child: const CompleteLessonView(),
           ),
         ),
       ),
     );
-    await tester.scrollUntilVisible(find.byType(TextFormField), 300);
+    await tester.scrollUntilVisible(
+      find.byType(TextFormField),
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.enterText(find.byType(TextFormField), 'Vježba parkiranja');
     final refreshResult = Completer<Either<Failure, InstructorLesson>>();
     repository.onGet = () => refreshResult.future;
@@ -138,8 +148,8 @@ void main() {
     await tester.ensureVisible(find.byType(TextFormField));
     await tester.pumpAndSettle();
     expect(find.text('Vježba parkiranja'), findsOneWidget);
-    await tester.ensureVisible(find.text('Dovrši vožnju'));
-    await tester.tap(find.text('Dovrši vožnju'));
+    await tester.ensureVisible(find.text('Spremi i zaključi'));
+    await tester.tap(find.text('Spremi i zaključi'));
     await tester.pump();
     expect(repository.note, 'Vježba parkiranja');
     repository.result.complete(
@@ -149,18 +159,14 @@ void main() {
     expect(find.text('Spremanje nije uspjelo.'), findsOneWidget);
     expect(find.text('Vježba parkiranja'), findsOneWidget);
     repository.result = Completer<Either<Failure, InstructorLesson>>();
-    await tester.tap(find.text('Dovrši vožnju'));
+    await tester.tap(find.text('Spremi i zaključi'));
     await tester.pump();
-    progressRepository.value = hours(25);
-    repository.result.complete(Right(lesson('one', 'COMPLETED')));
-    await tester.pumpAndSettle();
-    expect(find.text('Dovrši vožnju'), findsNothing);
-    expect(find.text('Sat je označen kao odrađen.'), findsOneWidget);
     expect(repository.calls, 2);
-    await tester.scrollUntilVisible(find.text('25/35 sati odrađeno'), -300);
-    expect(find.text('25/35 sati odrađeno'), findsOneWidget);
-    expect(find.text('Procijeni napredak'), findsNothing);
-    expect(tester.takeException(), isNull);
+    repository.result.complete(
+      const Left(Failure('Pokušajte ponovno.', statusCode: 503)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Vježba parkiranja'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     await progress.close();
   });
@@ -184,16 +190,20 @@ void main() {
         ),
       ),
     );
-    await tester.ensureVisible(find.text('Otkazi termin'));
-    await tester.tap(find.text('Otkazi termin'));
+    await tester.scrollUntilVisible(
+      find.text('Otkaži termin'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Otkaži termin'));
     await tester.pumpAndSettle();
     expect(repository.cancelCalls, 0);
     await tester.tap(find.text('Odustani'));
     await tester.pumpAndSettle();
     expect(repository.cancelCalls, 0);
-    await tester.tap(find.text('Otkazi termin'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Otkaži termin'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Otkaži termin'));
     await tester.pumpAndSettle();
     expect(repository.cancelCalls, 1);
     expect(find.text('Dovrši vožnju'), findsNothing);

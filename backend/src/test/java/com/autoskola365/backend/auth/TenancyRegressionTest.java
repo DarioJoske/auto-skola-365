@@ -288,6 +288,47 @@ class TenancyRegressionTest {
             .andExpect(status().isCreated());
     }
 
+    @Test
+    void instructorProfileAndHistoryRespectAssignmentSchoolAndActiveAccess() throws Exception {
+        String profile = BASE + "/candidates/instructor/" + CANDIDATE;
+        String history = BASE + "/lessons/instructor/candidates/" + CANDIDATE;
+        read(profile, instructorToken).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(CANDIDATE));
+        read(history, instructorToken).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].id").value(LESSON));
+        for (String route : List.of(profile, history)) {
+            assertError(read(route, otherInstructorToken), 403, "FORBIDDEN", route);
+            assertError(read(route, candidateToken), 403, "FORBIDDEN", route);
+            assertError(read(route.replace(SCHOOL, OTHER_SCHOOL), instructorToken), 403, "FORBIDDEN", route.replace(SCHOOL, OTHER_SCHOOL));
+            String absent = route.replace(CANDIDATE, "50000000-0000-0000-0000-000000000099");
+            assertError(read(absent, instructorToken), 404, "NOT_FOUND", absent);
+        }
+        // A newly assigned instructor may read the profile, but not the old instructor's notes.
+        jdbc.update("UPDATE candidates SET assigned_instructor_profile_id=? WHERE id=?", id(OTHER_INSTRUCTOR), id(CANDIDATE));
+        read(profile, otherInstructorToken).andExpect(status().isOk());
+        read(history, otherInstructorToken).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        assertError(read(profile, instructorToken), 403, "FORBIDDEN", profile);
+        assertError(read(history, instructorToken), 403, "FORBIDDEN", history);
+        jdbc.update("UPDATE instructor_profiles SET active=false WHERE id=?", id(OTHER_INSTRUCTOR));
+        assertError(read(profile, otherInstructorToken), 403, "FORBIDDEN", profile);
+        assertError(read(history, otherInstructorToken), 403, "FORBIDDEN", history);
+    }
+
+    @Test
+    void completionRefreshesProfileHistoryAndHoursWithoutDoubleCounting() throws Exception {
+        jdbc.update("UPDATE lessons SET status='CONFIRMED', start_at=?, end_at=? WHERE id=?",
+            java.sql.Timestamp.from(Instant.now().minusSeconds(7200)), java.sql.Timestamp.from(Instant.now().minusSeconds(3600)), id(LESSON));
+        postJson(BASE + "/lessons/" + LESSON + "/complete", instructorToken, "{\"note\":\"Internal practice note\"}")
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED"));
+        read(BASE + "/candidates/instructor/" + CANDIDATE, instructorToken)
+            .andExpect(status().isOk()).andExpect(jsonPath("$.completedDrivingHours").value(1));
+        read(BASE + "/lessons/instructor/candidates/" + CANDIDATE, instructorToken)
+            .andExpect(status().isOk()).andExpect(jsonPath("$[0].completionNote").value("Internal practice note"));
+        postJson(BASE + "/lessons/" + LESSON + "/complete", instructorToken, "{}")
+            .andExpect(status().isConflict());
+        read(BASE + "/candidates/" + CANDIDATE + "/progress", instructorToken)
+            .andExpect(status().isOk()).andExpect(jsonPath("$.completedDrivingHours").value(1));
+    }
+
     private void assertRace(Callable<ResultActions> a, Callable<ResultActions> b, int success) throws Exception {
         var pool = Executors.newFixedThreadPool(2);
         var ready = new CountDownLatch(2);

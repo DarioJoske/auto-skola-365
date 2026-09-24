@@ -6,6 +6,23 @@ import '../models/instructor_lesson_model.dart';
 class InstructorLessonsRemoteDataSource {
   const InstructorLessonsRemoteDataSource(this._apiClient);
 
+  Future<List<InstructorLessonModel>> history({
+    required String schoolId,
+    required String accessToken,
+    required String candidateId,
+  }) async {
+    final json = await _apiClient.getJson(
+      '/api/schools/$schoolId/lessons/instructor/candidates/$candidateId',
+      accessToken: accessToken,
+    );
+    return (json as List<dynamic>)
+        .map(
+          (item) =>
+              InstructorLessonModel.fromJson(item as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
   final ApiClient _apiClient;
 
   Future<InstructorLessonModel> reserve({

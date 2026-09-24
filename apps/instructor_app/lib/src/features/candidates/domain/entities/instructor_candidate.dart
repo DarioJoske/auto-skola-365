@@ -1,5 +1,6 @@
 class InstructorCandidate {
   const InstructorCandidate({
+    this.completedDrivingHours = 0,
     required this.id,
     required this.schoolId,
     required this.firstName,
@@ -15,6 +16,7 @@ class InstructorCandidate {
     required this.notes,
   });
 
+  final int completedDrivingHours;
   final String id;
   final String schoolId;
   final String firstName;

@@ -1,4 +1,4 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bloc/bloc.dart';
 
 import '../../../../core/api/result.dart';
 import '../../../../core/api/result_extensions.dart';
@@ -32,7 +32,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   int _loadRequestId = 0;
 
   Future<void> load() async {
-    if (isClosed) return;
+    if (isClosed || state.actionLessonId != null) return;
     final requestId = ++_loadRequestId;
     emit(
       state.copyWith(
@@ -55,6 +55,9 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         emit(
           state.copyWith(
             status: ScheduleStatus.failure,
+            lessons: [401, 403].contains(failure.statusCode)
+                ? const []
+                : state.lessons,
             errorMessage: failure.message,
             errorStatusCode: failure.statusCode,
             errorEventId: state.errorEventId + 1,
@@ -67,7 +70,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         emit(
           state.copyWith(
             status: ScheduleStatus.loaded,
-            lessons: sorted,
+            lessons: List.unmodifiable(sorted),
             errorMessage: null,
             errorStatusCode: null,
           ),
@@ -89,7 +92,8 @@ class ScheduleCubit extends Cubit<ScheduleState> {
 
   Future<void> moveByDays(int days) {
     final step = state.rangeMode == ScheduleRangeMode.week ? days * 7 : days;
-    return selectDate(state.selectedDate.add(Duration(days: step)));
+    final date = state.selectedDate;
+    return selectDate(DateTime(date.year, date.month, date.day + step));
   }
 
   Future<void> setRangeMode(ScheduleRangeMode rangeMode) async {
@@ -118,7 +122,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     await load();
   }
 
-  Future<bool> confirmLesson(String lessonId) {
+  Future<void> confirmLesson(String lessonId) {
     return _runLessonAction(
       lessonId: lessonId,
       successMessage: 'Termin je potvrden.',
@@ -130,7 +134,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     );
   }
 
-  Future<bool> cancelLesson(String lessonId) {
+  Future<void> cancelLesson(String lessonId) {
     return _runLessonAction(
       lessonId: lessonId,
       successMessage: 'Termin je otkazan.',
@@ -142,12 +146,13 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     );
   }
 
-  Future<bool> _runLessonAction({
+  Future<void> _runLessonAction({
     required String lessonId,
     required String successMessage,
     required FutureEither<InstructorLesson> Function() action,
   }) async {
-    if (isClosed || state.actionLessonId != null) return false;
+    if (isClosed || state.actionLessonId != null) return;
+    ++_loadRequestId;
     emit(
       state.copyWith(
         actionLessonId: lessonId,
@@ -156,14 +161,17 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       ),
     );
 
-    var completed = false;
     final result = await action();
-    if (isClosed) return false;
+    if (isClosed) return;
     result.resolveWithFailure(
       onFailure: (failure) {
         emit(
           state.copyWith(
+            status: ScheduleStatus.loaded,
             clearActionLessonId: true,
+            lessons: [401, 403].contains(failure.statusCode)
+                ? const []
+                : state.lessons,
             errorMessage: failure.message,
             errorStatusCode: failure.statusCode,
             errorEventId: state.errorEventId + 1,
@@ -175,6 +183,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         emit(
           state.copyWith(
             lessons: lessons,
+            status: ScheduleStatus.loaded,
             clearActionLessonId: true,
             successMessage: successMessage,
             successEventId: state.successEventId + 1,
@@ -182,11 +191,8 @@ class ScheduleCubit extends Cubit<ScheduleState> {
             errorStatusCode: null,
           ),
         );
-        completed = true;
       },
     );
-
-    return completed;
   }
 
   List<InstructorLesson> _replaceLesson(
@@ -198,13 +204,15 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         if (lesson.id == updated.id) updated else lesson,
     ]..sort((a, b) => a.startAt.compareTo(b.startAt));
 
-    return next
-        .where(
-          (lesson) =>
-              state.filters.status == null ||
-              lesson.status == state.filters.status,
-        )
-        .toList();
+    return List.unmodifiable(
+      next
+          .where(
+            (lesson) =>
+                state.filters.status == null ||
+                lesson.status == state.filters.status,
+          )
+          .toList(),
+    );
   }
 
   InstructorLessonFilters _filtersFor(
@@ -213,13 +221,15 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   ) {
     final from = switch (rangeMode) {
       ScheduleRangeMode.day => selectedDate,
-      ScheduleRangeMode.week => selectedDate.subtract(
-        Duration(days: selectedDate.weekday - DateTime.monday),
+      ScheduleRangeMode.week => DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day - selectedDate.weekday + DateTime.monday,
       ),
     };
     final to = switch (rangeMode) {
-      ScheduleRangeMode.day => from.add(const Duration(days: 1)),
-      ScheduleRangeMode.week => from.add(const Duration(days: 7)),
+      ScheduleRangeMode.day => DateTime(from.year, from.month, from.day + 1),
+      ScheduleRangeMode.week => DateTime(from.year, from.month, from.day + 7),
     };
 
     return state.filters.copyWith(from: from, to: to);

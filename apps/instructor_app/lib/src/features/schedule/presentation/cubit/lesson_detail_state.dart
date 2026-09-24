@@ -34,6 +34,7 @@ class LessonDetailState {
   LessonDetailState copyWith({
     LessonDetailStatus? status,
     InstructorLesson? lesson,
+    bool clearLesson = false,
     bool? actionInProgress,
     String? successMessage,
     int? successEventId,
@@ -43,7 +44,7 @@ class LessonDetailState {
   }) {
     return LessonDetailState(
       status: status ?? this.status,
-      lesson: lesson ?? this.lesson,
+      lesson: clearLesson ? null : lesson ?? this.lesson,
       actionInProgress: actionInProgress ?? this.actionInProgress,
       successMessage: successMessage,
       successEventId: successEventId ?? this.successEventId,

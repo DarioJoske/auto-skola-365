@@ -1,3 +1,5 @@
+import '../features/candidates/domain/usecases/get_instructor_candidate.dart';
+import '../features/schedule/domain/usecases/load_candidate_lessons.dart';
 import '../features/schedule/domain/usecases/reserve_instructor_lesson.dart';
 import '../features/progress/data/datasources/progress_remote_data_source.dart';
 import '../features/progress/data/repositories/progress_repository_impl.dart';
@@ -37,6 +39,12 @@ void configureDependencies() {
   }
 
   getIt
+    ..registerLazySingleton<GetInstructorCandidate>(
+      () => GetInstructorCandidate(getIt<InstructorCandidatesRepository>()),
+    )
+    ..registerLazySingleton<LoadCandidateLessons>(
+      () => LoadCandidateLessons(getIt<InstructorLessonsRepository>()),
+    )
     ..registerLazySingleton<Dio>(
       () => Dio(
         BaseOptions(

@@ -5,8 +5,13 @@ import '../../domain/entities/reserve_lesson.dart';
 import '../cubit/reservation_cubit.dart';
 
 final class ReservationDialog extends StatefulWidget {
-  const ReservationDialog({required this.initialDate, super.key});
+  const ReservationDialog({
+    required this.initialDate,
+    this.candidateId,
+    super.key,
+  });
   final DateTime initialDate;
+  final String? candidateId;
   @override
   State<ReservationDialog> createState() => _ReservationDialogState();
 }
@@ -19,6 +24,7 @@ class _ReservationDialogState extends State<ReservationDialog> {
   @override
   void initState() {
     super.initState();
+    _candidateId = widget.candidateId;
     final now = DateTime.now();
     final date = widget.initialDate.isBefore(now) ? now : widget.initialDate;
     _startAt = DateTime(date.year, date.month, date.day, date.hour + 1);

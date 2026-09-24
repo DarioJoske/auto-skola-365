@@ -1,3 +1,7 @@
+import '../../features/schedule/presentation/pages/daily_schedule_page.dart';
+import '../../features/schedule/presentation/pages/complete_lesson_page.dart';
+import '../../features/schedule/presentation/pages/lesson_completed_page.dart';
+import '../../features/candidates/presentation/pages/candidate_profile_page.dart';
 import 'planned_routes.dart';
 import '../../features/progress/presentation/pages/progress_page.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +19,7 @@ import 'go_router_refresh_stream.dart';
 
 GoRouter createAppRouter({required AuthCubit authCubit}) {
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/home',
     refreshListenable: GoRouterRefreshStream(authCubit.stream),
     redirect: (context, state) {
       final authState = authCubit.state;
@@ -31,7 +35,7 @@ GoRouter createAppRouter({required AuthCubit authCubit}) {
       }
 
       if (isLoginRoute) {
-        return '/';
+        return '/home';
       }
 
       return null;
@@ -47,6 +51,34 @@ GoRouter createAppRouter({required AuthCubit authCubit}) {
             _noTransitionPage(state, InstructorShellPage(child: child)),
         routes: [
           ...plannedRoutes(),
+          GoRoute(
+            path: '/home',
+            pageBuilder: (context, state) =>
+                _noTransitionPage(state, const DailySchedulePage()),
+          ),
+          GoRoute(
+            path: '/candidates/:candidateId',
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              CandidateProfilePage(
+                candidateId: state.pathParameters['candidateId']!,
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/lessons/:lessonId/complete',
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              CompleteLessonPage(lessonId: state.pathParameters['lessonId']!),
+            ),
+          ),
+          GoRoute(
+            path: '/lessons/:lessonId/completed',
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              LessonCompletedPage(lessonId: state.pathParameters['lessonId']!),
+            ),
+          ),
           GoRoute(
             path: '/',
             pageBuilder: (context, state) =>
