@@ -3,17 +3,6 @@ import '../../features/planned/presentation/pages/planned_page.dart';
 
 const plannedScreens = [
   (
-    path: '/lessons/:lessonId/request',
-    title: 'Zahtjev termina',
-    description:
-        'Zaseban prikaz zahtjeva je u pripremi. Potvrda i otkazivanje dostupni su u detalju termina.',
-  ),
-  (
-    path: '/availability',
-    title: 'Moja dostupnost',
-    description: 'Uređivanje dostupnosti instruktora bit će dostupno ovdje.',
-  ),
-  (
     path: '/messages',
     title: 'Poruke',
     description: 'Razgovori s kandidatima i školom bit će dostupni ovdje.',

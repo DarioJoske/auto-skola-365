@@ -12,6 +12,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface LessonRepository extends JpaRepository<Lesson, UUID> {
 
+    List<Lesson> findByInstructorIdAndEndAtAfter(UUID instructorId, Instant now);
+
     interface CandidateHours {
         UUID getCandidateId();
         long getCompletedHours();

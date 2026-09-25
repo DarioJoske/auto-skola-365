@@ -41,6 +41,22 @@ class ApiClient {
     }
   }
 
+  Future<dynamic> putJson(
+    String path, {
+    required Map<String, dynamic> body,
+    String? accessToken,
+  }) async {
+    try {
+      return (await _dio.put<dynamic>(
+        path,
+        data: body,
+        options: Options(headers: _headers(accessToken)),
+      )).data;
+    } on DioException catch (error) {
+      throw _toApiException(error);
+    }
+  }
+
   Map<String, String> _headers(String? accessToken) {
     return {if (accessToken != null) 'Authorization': 'Bearer $accessToken'};
   }

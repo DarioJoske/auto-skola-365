@@ -1,3 +1,4 @@
+import 'package:auto_skola_365_candidate_app/src/features/portal/domain/usecases/respond_proposal.dart';
 import 'package:auto_skola_365_candidate_app/src/core/api/failure.dart';
 import 'package:auto_skola_365_candidate_app/src/app/app_dependencies.dart';
 import 'package:auto_skola_365_candidate_app/src/app/candidate_app.dart';
@@ -64,6 +65,7 @@ void main() {
       getIt.registerSingleton<AuthCubit>(auth);
       getIt.registerSingleton<LoadPortal>(LoadPortal(portal));
       getIt.registerSingleton<RequestLesson>(RequestLesson(portal));
+      getIt.registerSingleton<RespondProposal>(RespondProposal(portal));
       addTearDown(() async {
         await getIt.reset();
         await auth.close();
@@ -86,6 +88,13 @@ void main() {
       );
       await tester.tap(find.text('Zatraži termin'));
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Pošalji zahtjev'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.text('Pošalji zahtjev'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Pošalji zahtjev'));
       await tester.pumpAndSettle();
       expect(
@@ -99,6 +108,13 @@ void main() {
       portal.onRequest = () async => const Left(
         Failure('Unauthorized', statusCode: 401, code: 'UNAUTHORIZED'),
       );
+      await tester.scrollUntilVisible(
+        find.text('Pošalji zahtjev'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.text('Pošalji zahtjev'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Pošalji zahtjev'));
       await tester.pumpAndSettle();
       expect(find.text('Prijavi se'), findsOneWidget);
@@ -148,6 +164,7 @@ void main() {
           getIt.registerSingleton<AuthCubit>(auth);
           getIt.registerSingleton<LoadPortal>(LoadPortal(portal));
           getIt.registerSingleton<RequestLesson>(RequestLesson(portal));
+          getIt.registerSingleton<RespondProposal>(RespondProposal(portal));
           addTearDown(() async {
             await getIt.reset();
             await auth.close();

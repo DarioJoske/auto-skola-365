@@ -74,8 +74,8 @@ Instruktorski dio ažuriran prema [tasku #9](instructor-daily-work.md).
 | I04 Završi sat | `/lessons/:lessonId/complete` | Samostalni obrazac interne bilješke (#9) |
 | I05 Moji kandidati | `/candidates` | Kartice s odrađenim satima i profilom (#9) |
 | I06 Profil kandidata | `/candidates/:candidateId` | Sati, kontakt, rezervacija i vlastita povijest (#9) |
-| I07 Zahtjev termina | `/lessons/:lessonId/request` | Placeholder samostalnog ekrana; radnje ostaju u detalju |
-| I08 Moja dostupnost | `/availability` | Placeholder |
+| I07 Zahtjev termina | `/lessons/:lessonId/request` | Implementirano u [tasku #10](request-availability.md): potvrda, odbijanje i prijedlog |
+| I08 Moja dostupnost | `/availability` | Tjedna dostupnost, pauze i odsutnost (#10) |
 | I09 Poruke | `/messages` | Placeholder |
 | I10 Moj profil | `/profile` | Postojeći podaci profila; kompatibilna ruta `/settings` |
 | I11 Sat je evidentiran | `/lessons/:lessonId/completed` | Provjerena potvrda uz ponovni dohvat sati (#9) |
@@ -85,8 +85,8 @@ Instruktorski dio ažuriran prema [tasku #9](instructor-daily-work.md).
 | C01 Početna | `/` | Postojeća implementacija |
 | C02 Moj put | `/journey` | Placeholder |
 | C03 Moji termini | `/lessons` | Postojeća implementacija |
-| C04 Zatraži vožnju | `/lessons/request` | Placeholder samostalnog ekrana; stvarni zahtjev ostaje u postojećem dijalogu |
-| C05 Zahtjev je poslan | `/lessons/request-sent` | Placeholder; otvaranje ne šalje zahtjev |
+| C04 Zatraži vožnju | `/lessons/request` | Samostalan obrazac zahtjeva (#10) |
+| C05 Zahtjev je poslan | `/lessons/request-sent` | Potvrda uspješnog slanja; izravno otvaranje ne šalje zahtjev (#10) |
 | C06 Detalj termina | `/lessons/:lessonId` | Placeholder |
 | C07 Moj ispit | `/exams` | Placeholder |
 | C08 Dokumenti i uplate | `/documents-payments` | Placeholder |

@@ -362,7 +362,7 @@ linked to the authenticated user. Returns `candidateId`, `firstName`, `lastName`
 `completedDrivingHours`, nullable `requiredDrivingHours`, and `lessons`.
 
 Each lesson contains `id`, `status`, `startAt`, `endAt`, `instructorName` and
-nullable `branchName`, ordered by start time descending. The response excludes
+nullable `branchName` and `proposedStartAt`, ordered by start time descending. The response excludes
 internal candidate notes, lesson notes and completion notes. A missing linked
 candidate or access to another school returns `403`.
 
@@ -506,11 +506,13 @@ Lesson statuses:
 
 Creation/update accepts `REQUESTED`, `CONFIRMED` and `CANCELLED`; direct writes
 to `COMPLETED` or `NO_SHOW` return `400`. Confirm/cancel accept any of those
-three mutable states, including repeated actions and reopening a cancelled
-lesson (confirm rechecks overlaps). Update requires `lessons.manage` and
+three mutable states for non-candidate-created lessons. Candidate-created requests
+can be confirmed only from `REQUESTED`. A pending `proposedStartAt` prevents direct
+confirmation and update except cancellation (see task #10 below). Confirm
+rechecks assignment, active instructor membership, availability and overlaps. Update requires `lessons.manage` and
 revalidates the current candidate/instructor assignment. Completed/no-show
-records cannot be edited, confirmed or cancelled. Candidate withdrawal and
-rescheduling are not supported. There are no separate cancellation-by-role,
+records cannot be edited, confirmed or cancelled. Candidate withdrawal is not supported. A candidate may accept or reject a new
+time proposed by the instructor through the proposal-response endpoint. There are no separate cancellation-by-role,
 rejection or moved statuses.
 
 Lesson types:
@@ -649,8 +651,7 @@ assigned instructor, the API returns `409 Conflict`.
 The response uses `LessonResponse` and can echo the candidate's own submitted
 `notes`; `completionNote` is initially null. Subsequent candidate reads use
 the restricted candidate portal response, which excludes all internal notes.
-Unlike instructor reservations, this endpoint does not currently validate a
-future start on the server; the candidate UI rejects past starts.
+Both the server and candidate UI reject past starts.
 
 ```http
 GET /api/schools/{schoolId}/lessons/{lessonId}
@@ -735,3 +736,13 @@ replaced by these totals; `POST /lessons/{lessonId}/progress` returns `405`.
 Migration `V11__lesson_progress.sql` and its historical data remain unchanged.
 `V12__candidate_driving_hours.sql` adds the optional positive target, initializes
 existing B-category candidates to 35, and indexes the completed-hour query.
+
+## Zahtjevi i dostupnost (#10)
+
+[Ugovor i tok](../development/request-availability.md) opisuje nove `propose`,
+`reject`, `candidate/{lessonId}/proposal-response` i instructor availability
+GET/PUT rute. Kandidat prihvaća novo vrijeme prije potvrde. `proposedStartAt`
+ostaje na `REQUESTED` zapisu, a predloženi interval nije rezerviran do prihvata.
+Tjedna pravila, pauze i odsutnosti sada se provjeravaju na svim scheduling
+putanjama. Promjene dostupnosti ne smiju isključiti postojeće buduće termine.
+Migracija V13 dodaje prijedlog i intervale nedostupnosti.

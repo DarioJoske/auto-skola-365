@@ -1,8 +1,8 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:auto_skola_design_system/design_system.dart';
 import '../../domain/entities/candidate_portal.dart';
 import '../utils/lesson_formatters.dart';
-import 'request_lesson_dialog.dart';
 
 final class NextLessonCard extends StatelessWidget {
   const NextLessonCard({
@@ -70,7 +70,9 @@ final class NextLessonCard extends StatelessWidget {
                 ),
               const SizedBox(height: 24),
               FilledButton.tonalIcon(
-                onPressed: canRequest ? () => showLessonRequest(context) : null,
+                onPressed: canRequest
+                    ? () => context.push('/lessons/request')
+                    : null,
                 icon: const Icon(Icons.add),
                 label: const Text('Zatraži termin'),
               ),

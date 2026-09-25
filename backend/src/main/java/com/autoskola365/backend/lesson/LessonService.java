@@ -16,6 +16,7 @@ import com.autoskola365.backend.candidate.CandidateRepository;
 import com.autoskola365.backend.instructor.InstructorNotFoundException;
 import com.autoskola365.backend.instructor.InstructorProfile;
 import com.autoskola365.backend.instructor.InstructorRepository;
+import com.autoskola365.backend.instructor.AvailabilityService;
 import com.autoskola365.backend.school.Branch;
 import com.autoskola365.backend.school.BranchRepository;
 
@@ -27,6 +28,9 @@ public class LessonService {
     private static final String RESERVE_OWN_LESSONS = "lessons.reserve_own";
     private static final Duration DEFAULT_DURATION = Duration.ofMinutes(60);
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+    private final AvailabilityService availability;
     private final LessonRepository lessonRepository;
     private final CandidateRepository candidateRepository;
     private final InstructorRepository instructorRepository;
@@ -38,9 +42,11 @@ public class LessonService {
         CandidateRepository candidateRepository,
         InstructorRepository instructorRepository,
         BranchRepository branchRepository,
-        AuthorizationService authorizationService
+        AuthorizationService authorizationService,
+        AvailabilityService availability
     ) {
         this.lessonRepository = lessonRepository;
+        this.availability = availability;
         this.candidateRepository = candidateRepository;
         this.instructorRepository = instructorRepository;
         this.branchRepository = branchRepository;
@@ -194,6 +200,7 @@ public class LessonService {
         AuthenticatedUser authenticatedUser
     ) {
         requireCandidateReservationAccess(schoolId, authenticatedUser);
+        requireFuture(request.startAt());
         Candidate candidate = candidateRepository.findForUpdateByUser(schoolId, authenticatedUser.userId())
             .orElseThrow(() -> new LessonAccessDeniedException("User cannot reserve lessons for this candidate."));
         InstructorProfile instructor = candidate.getAssignedInstructor();
@@ -264,6 +271,8 @@ public class LessonService {
         Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
             .orElseThrow(() -> new LessonNotFoundException("Lesson does not exist."));
         requireManageLessonsOrAssignedInstructor(schoolId, lesson.getInstructor(), authenticatedUser);
+        if ("CANDIDATE".equals(lesson.getCreatedByRole())) lesson.requireRequested();
+        validateDecision(lesson);
         ensureNoOverlap(lesson, lesson.getId());
         lesson.confirm();
 
@@ -276,6 +285,7 @@ public class LessonService {
         Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
             .orElseThrow(() -> new LessonNotFoundException("Lesson does not exist."));
         requireManageLessonsOrAssignedInstructor(schoolId, lesson.getInstructor(), authenticatedUser);
+        if ("REQUESTED".equals(lesson.getStatus())) validateDecision(lesson);
         lesson.cancel();
 
         return toResponse(lesson);
@@ -294,6 +304,79 @@ public class LessonService {
         requireAssignedInstructor(instructor, lesson);
         lesson.complete(request.note(), Instant.now());
         return toResponse(lesson);
+    }
+
+    @Transactional
+    public LessonResponse propose(UUID schoolId, UUID lessonId, ProposalRequest request, AuthenticatedUser user) {
+        requireSchoolLessonAccess(schoolId, user);
+        Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
+            .orElseThrow(() -> new LessonNotFoundException("Termin ne postoji."));
+        requireManageLessonsOrAssignedInstructor(schoolId, lesson.getInstructor(), user);
+        lesson.requireRequested();
+        validateDecision(lesson);
+        requireFuture(request.startAt());
+        ensureNoOverlap(lesson.getCandidate(), lesson.getInstructor(), request.startAt(), request.startAt().plus(DEFAULT_DURATION), lessonId);
+        lesson.propose(request.startAt());
+        return toResponse(lesson);
+    }
+    @Transactional
+    public LessonResponse reject(UUID schoolId, UUID lessonId, AuthenticatedUser user) {
+        requireSchoolLessonAccess(schoolId, user);
+        Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
+            .orElseThrow(() -> new LessonNotFoundException("Termin ne postoji."));
+        requireManageLessonsOrAssignedInstructor(schoolId, lesson.getInstructor(), user);
+        lesson.requireRequested();
+        validateDecision(lesson);
+        lesson.cancel();
+        return toResponse(lesson);
+    }
+    @Transactional
+    public void respond(UUID schoolId, UUID lessonId, ProposalResponse request, AuthenticatedUser user) {
+        requireCandidateReservationAccess(schoolId, user);
+        Lesson lesson = lessonRepository.findForUpdate(lessonId, schoolId)
+            .orElseThrow(() -> new LessonNotFoundException("Termin ne postoji."));
+        var candidate = lesson.getCandidate();
+        if (candidate.getUser() == null || !candidate.getUser().getId().equals(user.userId())) {
+            throw new LessonAccessDeniedException("Nemate pristup ovom zahtjevu.");
+        }
+        validateDecision(lesson);
+        if (candidate.getUser() == null || !candidate.getUser().getId().equals(user.userId())) {
+            throw new LessonAccessDeniedException("Nemate pristup ovom zahtjevu.");
+        }
+        if (request.accept()) {
+            requireFuture(request.startAt());
+            ensureNoOverlap(candidate, lesson.getInstructor(), request.startAt(), request.startAt().plus(DEFAULT_DURATION), lessonId);
+        }
+        lesson.respondToProposal(request.startAt(), request.accept());
+    }
+    private void requireFuture(Instant start) {
+        if (!start.isAfter(Instant.now())) throw new InvalidLessonException("Termin mora biti u budućnosti.");
+    }
+    private void lockResources(Candidate candidate, InstructorProfile instructor) {
+        UUID schoolId = candidate.getSchool().getId();
+        candidateRepository.findForUpdate(candidate.getId(), schoolId).orElseThrow();
+        entityManager.refresh(candidate);
+        instructorRepository.findForUpdate(instructor.getId(), schoolId).orElseThrow();
+        entityManager.refresh(instructor);
+    }
+    private void validateDecision(Lesson lesson) {
+        lockResources(lesson.getCandidate(), lesson.getInstructor());
+        var instructor = lesson.getInstructor();
+        var candidate = lesson.getCandidate();
+        if (!candidate.getSchool().getId().equals(lesson.getSchool().getId())
+            || !instructor.getSchoolMembership().getSchool().getId().equals(lesson.getSchool().getId())) {
+            throw new LessonAccessDeniedException("Termin ne pripada ovoj školi.");
+        }
+        if (!instructor.isActive() || !"ACTIVE".equals(instructor.getSchoolMembership().getStatus())) {
+            throw new LessonAccessDeniedException("Instruktor nije aktivan.");
+        }
+        if (candidate.getAssignedInstructor() == null || !candidate.getAssignedInstructor().getId().equals(instructor.getId())) {
+            throw new LessonConflictException("Dodjela kandidata je promijenjena. Osvježite termine.");
+        }
+        if (instructor.getCategories().stream().noneMatch(c -> c.getId().equals(candidate.getDrivingCategory().getId()))
+            || !lesson.getDrivingCategory().getId().equals(candidate.getDrivingCategory().getId())) {
+            throw new LessonConflictException("Kategorija kandidata je promijenjena. Potreban je novi zahtjev.");
+        }
     }
 
     private LessonInputs getInputs(UUID schoolId, LessonRequest request) {
@@ -342,6 +425,10 @@ public class LessonService {
         if (LessonStatus.COMPLETED.value().equals(status) || LessonStatus.NO_SHOW.value().equals(status)) {
             throw new InvalidLessonException("Lesson cannot be created or updated directly to final status.");
         }
+        lockResources(inputs.candidate(), inputs.instructor());
+        if (!inputs.instructor().getSchoolMembership().getStatus().equals("ACTIVE")) {
+            throw new LessonAccessDeniedException("Instruktor nema aktivno članstvo škole.");
+        }
         if (!inputs.instructor().isActive()) {
             throw new InvalidLessonException("Instructor is not active.");
         }
@@ -384,6 +471,7 @@ public class LessonService {
             .orElseThrow(() -> new CandidateNotFoundException("Candidate does not exist."));
         instructorRepository.findForUpdate(instructor.getId(), schoolId)
             .orElseThrow(() -> new InstructorNotFoundException("Instructor does not exist."));
+        availability.requireAvailable(instructor.getId(), startAt, endAt);
         lessonRepository.search(schoolId, startAt, endAt, instructor.getId(), null, null).stream()
             .filter(conflict -> !LessonStatus.CANCELLED.value().equals(conflict.getStatus()))
             .filter(conflict -> !conflict.getId().equals(excludedLessonId))
@@ -486,7 +574,8 @@ public class LessonService {
             lesson.getNotes(),
             lesson.getCompletedAt(),
             lesson.getCompletionNote(),
-            lesson.getCreatedByRole()
+            lesson.getCreatedByRole(),
+            lesson.getProposedStartAt()
         );
     }
 

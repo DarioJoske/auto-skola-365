@@ -40,6 +40,7 @@ class AuthFlowIntegrationTest {
         "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_blocks",
         "DELETE FROM instructor_availability_rules",
         "DELETE FROM instructors_categories",
         "DELETE FROM instructor_profiles",
@@ -128,6 +129,7 @@ class AuthFlowIntegrationTest {
         "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_blocks",
         "DELETE FROM instructor_availability_rules",
         "DELETE FROM instructors_categories",
         "DELETE FROM instructor_profiles",
@@ -232,6 +234,7 @@ class AuthFlowIntegrationTest {
         "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_blocks",
         "DELETE FROM instructor_availability_rules",
         "DELETE FROM instructors_categories",
         "DELETE FROM instructor_profiles",
@@ -382,6 +385,7 @@ class AuthFlowIntegrationTest {
         "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_blocks",
         "DELETE FROM instructor_availability_rules",
         "DELETE FROM instructors_categories",
         "DELETE FROM instructor_profiles",
@@ -649,6 +653,7 @@ class AuthFlowIntegrationTest {
         "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_blocks",
         "DELETE FROM instructor_availability_rules",
         "DELETE FROM instructors_categories",
         "DELETE FROM instructor_profiles",
@@ -728,7 +733,7 @@ class AuthFlowIntegrationTest {
               "categoryCodes": ["B"],
               "availabilityRules": [
                 {
-                  "dayOfWeek": 1,
+                  "dayOfWeek": 2,
                   "startTime": "08:00:00",
                   "endTime": "16:00:00"
                 }
@@ -835,6 +840,7 @@ class AuthFlowIntegrationTest {
         "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_blocks",
         "DELETE FROM instructor_availability_rules",
         "DELETE FROM instructors_categories",
         "DELETE FROM instructor_profiles",
@@ -934,6 +940,7 @@ class AuthFlowIntegrationTest {
         "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_blocks",
         "DELETE FROM instructor_availability_rules",
         "DELETE FROM instructors_categories",
         "DELETE FROM instructor_profiles",
@@ -1014,6 +1021,7 @@ class AuthFlowIntegrationTest {
         "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_blocks",
         "DELETE FROM instructor_availability_rules",
         "DELETE FROM instructors_categories",
         "DELETE FROM instructor_profiles",
@@ -1160,6 +1168,7 @@ class AuthFlowIntegrationTest {
         "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_blocks",
         "DELETE FROM instructor_availability_rules",
         "DELETE FROM instructors_categories",
         "DELETE FROM instructor_profiles",
@@ -1195,12 +1204,13 @@ class AuthFlowIntegrationTest {
             java.util.UUID.fromString("20000000-0000-0000-0000-000000000003"),
             "ana@example.com"
         );
+        var start = java.time.Instant.now().plusSeconds(86400).truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
         String reservationPayload = """
             {
-              "startAt": "2026-09-08T08:00:00Z",
+              "startAt": "%s",
               "notes": "Zelim termin voznje"
             }
-            """;
+            """.formatted(start);
 
         mockMvc.perform(post("/api/schools/10000000-0000-0000-0000-000000000001/lessons/candidate/reservations")
                 .header("Authorization", "Bearer " + candidateToken)
@@ -1211,7 +1221,7 @@ class AuthFlowIntegrationTest {
             .andExpect(jsonPath("$.instructorId").value("40000000-0000-0000-0000-000000000001"))
             .andExpect(jsonPath("$.lessonType").value("DRIVING"))
             .andExpect(jsonPath("$.status").value("REQUESTED"))
-            .andExpect(jsonPath("$.endAt").value("2026-09-08T09:00:00Z"))
+            .andExpect(jsonPath("$.endAt").value(start.plusSeconds(3600).toString()))
             .andExpect(jsonPath("$.createdByRole").value("CANDIDATE"));
 
         mockMvc.perform(post("/api/schools/10000000-0000-0000-0000-000000000001/lessons/candidate/reservations")
@@ -1237,6 +1247,7 @@ class AuthFlowIntegrationTest {
         "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_blocks",
         "DELETE FROM instructor_availability_rules",
         "DELETE FROM instructors_categories",
         "DELETE FROM instructor_profiles",
@@ -1325,6 +1336,7 @@ class AuthFlowIntegrationTest {
         "DELETE FROM lesson_progress",
         "DELETE FROM lessons",
         "DELETE FROM candidates",
+        "DELETE FROM instructor_availability_blocks",
         "DELETE FROM instructor_availability_rules",
         "DELETE FROM instructors_categories",
         "DELETE FROM instructor_profiles",

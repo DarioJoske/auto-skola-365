@@ -31,15 +31,15 @@ public class CandidatePortalService {
             .map(lesson -> new CandidateLesson(lesson.getId(), lesson.getStatus(), lesson.getStartAt(), lesson.getEndAt(),
                 lesson.getInstructor().getSchoolMembership().getUser().getFirstName() + " "
                     + lesson.getInstructor().getSchoolMembership().getUser().getLastName(),
-                lesson.getBranch() == null ? null : lesson.getBranch().getName())).toList();
+                lesson.getBranch() == null ? null : lesson.getBranch().getName(), lesson.getProposedStartAt())).toList();
         long completed = lessons.countBySchoolIdAndCandidateIdAndDrivingCategoryIdAndStatusAndLessonType(
             schoolId, candidate.getId(), candidate.getDrivingCategory().getId(), "COMPLETED", "DRIVING");
         return new PortalResponse(candidate.getId(), candidate.getFirstName(), candidate.getLastName(),
             candidate.getSchool().getName(), candidate.getDrivingCategory().getCode(), instructorName,
-            instructor != null && instructor.isActive(), completed, candidate.getRequiredDrivingHours(), items);
+            instructor != null && instructor.isActive() && "ACTIVE".equals(instructor.getSchoolMembership().getStatus()), completed, candidate.getRequiredDrivingHours(), items);
     }
     public record PortalResponse(UUID candidateId, String firstName, String lastName, String schoolName,
         String categoryCode, String instructorName, boolean canRequestLesson, long completedDrivingHours,
         Integer requiredDrivingHours, List<CandidateLesson> lessons) {}
-    public record CandidateLesson(UUID id, String status, Instant startAt, Instant endAt, String instructorName, String branchName) {}
+    public record CandidateLesson(UUID id, String status, Instant startAt, Instant endAt, String instructorName, String branchName, Instant proposedStartAt) {}
 }

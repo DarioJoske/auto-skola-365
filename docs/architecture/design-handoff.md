@@ -12,6 +12,10 @@ Promjena trajanja ili obračuna traži zasebnu potvrđenu produktnu odluku i
 opis učinka na postojeće termine i evidenciju. Ovim zadatkom takva promjena
 nije uvedena.
 
+Dopuna 2026-09-25: [task #10](../development/request-availability.md) uvodi
+prijedlog s obveznim odgovorom kandidata i provedbu dostupnosti. Pravila ispod
+ažurirana su za taj tok.
+
 ## Odluke i odstupanja od maketa
 
 | Područje / Figma izvor | Pravilo za aktualnu implementaciju |
@@ -21,7 +25,7 @@ nije uvedena.
 | [I04 · Završi sat](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=26-844): unos statusa, 2 sata i teme | Akcija završava postojeći potvrđeni termin; broj sati se ne unosi. API prihvaća samo neobavezni `note`; zasebno polje teme nije podržano. |
 | I04 i [I11 · Sat je evidentiran](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=43-564): bilješka vidljiva Ani, +2 sata | Bilješka ostaje interna. Nakon uspjeha učitati zbroj s backenda; za odgovarajuću aktualnu kategoriju jedna vožnja daje +1. Ne obećavati +1 za povijesnu kategoriju. |
 | [A06 · Upis kandidata](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=33-1682) i [S01 · Prijava](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=39-45): pozivnica i oporavak lozinke | Aktivacija početnom lozinkom kroz admin spremanje kandidata. Pozivnice i samostalni oporavak ostaju budući rad. |
-| [C05 · Zahtjev je poslan](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=25-306): povlačenje; C06: zahtjev za promjenu; [I07 · Zahtjev termina](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=26-1057): potvrda i obavijest | Kandidat trenutačno samo šalje zahtjev. Instruktor potvrđuje isti zapis ili ga otkazuje; odbijanje se mapira na `CANCELLED`. Obavijesti nisu implementirane. |
+| [C05 · Zahtjev je poslan](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=25-306): povlačenje; C06: zahtjev za promjenu; [I07 · Zahtjev termina](https://www.figma.com/design/PYieT0HT4rpSslsWaH9iWc?node-id=26-1057): potvrda i obavijest | Kandidat šalje zahtjev te prihvaća ili odbija prijedlog drugog vremena. Instruktor potvrđuje, odbija ili predlaže. Odbijanje se mapira na `CANCELLED`. Obavijesti nisu implementirane. |
 
 Figma handoff sažima ove odluke. Ostali ekrani ostaju ilustrativni blueprint;
 gornja tablica definira obvezne prilagodbe pri implementaciji tih ekrana.
@@ -61,18 +65,19 @@ trenutačni instruktor UI ne nudi:
 | Kandidat šalje zahtjev | Novi zapis | `REQUESTED` | `lessons.reserve_own`, povezani kandidat iz JWT-a, trenutačno dodijeljeni aktivni instruktor i odgovarajuća kategorija. |
 | Instruktor rezervira | Novi zapis | `CONFIRMED` | `lessons.view_assigned`, aktivni instruktor iz prijave, njegov trenutačno dodijeljeni kandidat; početak mora biti u budućnosti. |
 | Opći create | Novi zapis | `REQUESTED` (zadano), `CONFIRMED` ili `CANCELLED` | `lessons.manage` ili ovlašteni instruktor naveden na terminu; provjera aktualne dodjele i trajanja. |
-| Confirm | `REQUESTED`, `CONFIRMED`, `CANCELLED` | `CONFIRMED` | `lessons.manage` ili ovlašteni instruktor zapisan na terminu; ponovna provjera preklapanja. |
+| Confirm | `REQUESTED`, `CONFIRMED`, `CANCELLED` | `CONFIRMED` | `lessons.manage` ili ovlašteni instruktor zapisan na terminu; ponovna provjera dodjele, članstva, dostupnosti i preklapanja; za kandidatski zahtjev samo `REQUESTED`, bez prijedloga na čekanju. |
 | Cancel | `REQUESTED`, `CONFIRMED`, `CANCELLED` | `CANCELLED` | `lessons.manage` ili ovlašteni instruktor zapisan na terminu. |
-| Opći update / pomicanje | `REQUESTED`, `CONFIRMED`, `CANCELLED` | `REQUESTED`, `CONFIRMED` ili `CANCELLED` | `lessons.manage`; ponovno provjerava aktualnu dodjelu, trajanje i preklapanja za neotkazani termin. |
+| Opći update / pomicanje | `REQUESTED`, `CONFIRMED`, `CANCELLED` | `REQUESTED`, `CONFIRMED` ili `CANCELLED` | `lessons.manage`; ponovno provjerava aktualnu dodjelu, trajanje, dostupnost i preklapanja; prijedlog na čekanju dopušta samo otkazivanje. |
 | Complete | Samo `CONFIRMED` | `COMPLETED` | Aktivni instruktor zapisan na terminu, `lessons.view_assigned`, `endAt <=` vrijeme servera. Admin dozvola sama nije dovoljna. |
 | Promjena konačnog zapisa | `COMPLETED`, `NO_SHOW` | `409` pri confirm/cancel/complete; update s inače valjanim podacima također je odbijen | Konačni zapisi se ne uređuju, potvrđuju niti otkazuju. |
 
 Izravni create/update na `COMPLETED` ili `NO_SHOW` vraća `400`. `NO_SHOW`
 postoji u modelu, filtrima i prikazu, ali nema implementiranu radnju upisa.
 Instruktor UI nudi potvrdu samo za `REQUESTED`, a otkazivanje za `REQUESTED`
-i `CONFIRMED`. API dopušta ponovljeni confirm/cancel i ponovno potvrđivanje
-otkazanog termina; ove radnje mogu osvježiti vremenske oznake. Ne tretirati
-ih kao strogi stroj stanja niti kao nepromjenjive ponovljene operacije.
+i `CONFIRMED`. Za nekandidatske zapise API dopušta ponovljeni confirm/cancel i ponovno
+potvrđivanje otkazanog termina. Kandidatski confirm zahtijeva `REQUESTED`;
+prijedlog na čekanju blokira confirm i update osim izričitog otkazivanja.
+Prihvaćanje/odbijanje prijedloga ima strogu provjeru statusa i očekivanog vremena.
 
 Svi statusi osim `CANCELLED` blokiraju preklapanje kandidata i instruktora,
 uključujući zahtjev koji još nije potvrđen. Susjedni termini bez preklapanja
@@ -94,13 +99,12 @@ Ponovno ili konkurentno završavanje ne smije ponovno evidentirati vožnju.
 - Završavanje provjerava instruktora **zapisanog na terminu**. Provjera aktualne
   dodjele kandidata primjenjuje se na nove/izmijenjene rezervacije i instruktorov
   pregled napretka. To nisu identične provjere nakon promjene instruktora.
-- Kandidat nema ovlast potvrđivanja, završavanja, povlačenja ili otkazivanja
-  kroz sadašnji API. Makete ne dodaju te dozvole.
+- Kandidat može odgovoriti na prijedlog vlastitog zahtjeva. Nema opću ovlast
+  potvrđivanja, završavanja, povlačenja ili otkazivanja drugih termina.
 
-Poznata granica: budući početak eksplicitno provjerava instruktorov reservation
-endpoint; opći i kandidatski endpoint nemaju istu provjeru. Kandidatski UI
-odbija prošle termine. Eventualno ujednačavanje pripada zasebnoj promjeni
-backenda s testovima, ne implicitnoj promjeni pri precrtavanju makete.
+Budući početak provjeravaju instruktorova i kandidatska rezervacija, prijedlog
+i njegovo prihvaćanje. Opći administrativni create/update zadržavaju mogućnost
+unosa povijesnih termina. Dostupnost se provjerava na svim putanjama upisa.
 
 ## Javne i interne bilješke
 

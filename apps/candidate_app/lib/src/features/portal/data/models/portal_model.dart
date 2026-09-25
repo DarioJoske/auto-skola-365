@@ -24,6 +24,9 @@ final class PortalModel {
         endAt: DateTime.parse(j['endAt'] as String).toLocal(),
         instructorName: j['instructorName'] as String,
         branchName: j['branchName'] as String?,
+        proposedStartAt: j['proposedStartAt'] == null
+            ? null
+            : DateTime.parse(j['proposedStartAt'] as String).toLocal(),
       );
     }).toList(),
   );

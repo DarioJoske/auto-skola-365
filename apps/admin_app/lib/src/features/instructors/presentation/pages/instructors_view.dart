@@ -1,3 +1,4 @@
+import '../../../availability/presentation/pages/availability_page.dart';
 import 'package:auto_skola_design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -332,6 +333,36 @@ final class _InstructorRow extends StatelessWidget {
             const SizedBox(width: 8),
             Chip(label: Text(instructor.active ? 'Aktivan' : 'Neaktivan')),
             const SizedBox(width: 8),
+            IconButton(
+              tooltip: 'Dostupnost, pauze i odsutnost',
+              icon: const Icon(Icons.event_available),
+              onPressed: () async {
+                final cubit = context.read<InstructorsCubit>();
+                await showDialog<void>(
+                  context: context,
+                  builder: (_) => Dialog(
+                    child: SizedBox(
+                      width: 720,
+                      height: 720,
+                      child: Column(
+                        children: [
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: CloseButton(),
+                          ),
+                          Expanded(
+                            child: AvailabilityPage(
+                              instructorId: instructor.id,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+                if (!cubit.isClosed) await cubit.load();
+              },
+            ),
             IconButton(
               onPressed: onEdit,
               icon: const Icon(Icons.edit),

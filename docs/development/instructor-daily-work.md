@@ -17,8 +17,9 @@ lokacije, teme, ručni unos sati i javna bilješka iz Figme nisu API ugovor.
 | `/candidates/:candidateId` | Aktualna kategorija i sati, kontakt, interna bilješka, rezervacija s unaprijed odabranim kandidatom i vlastiti termini s bilješkama završavanja. |
 
 Postojeće `/candidates/:id/progress` i `/lessons/:id/progress` ostaju podržane.
-Poruke, dostupnost i zasebni prikaz zahtjeva ostaju označeni kao priprema;
-potvrđivanje zahtjeva radi u detalju termina. Nema izmišljenih podataka o
+Poruke ostaju označene kao priprema. Dostupnost i zasebni prikaz zahtjeva
+implementirani su u [tasku #10](request-availability.md); detalj termina vodi
+na obradu zahtjeva. Nema izmišljenih podataka o
 vozilima, slobodnim terminima ili automatskoj spremnosti za ispit.
 
 ## API i granice pristupa

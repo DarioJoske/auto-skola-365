@@ -1,3 +1,7 @@
+import '../features/availability/data/datasources/availability_remote_data_source.dart';
+import '../features/availability/data/repositories/availability_repository_impl.dart';
+import '../features/availability/domain/repositories/availability_repository.dart';
+import '../features/availability/domain/usecases/manage_availability.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 
@@ -53,6 +57,15 @@ void configureDependencies() {
   }
 
   getIt
+    ..registerLazySingleton<AvailabilityRemoteDataSource>(
+      () => AvailabilityRemoteDataSource(getIt<ApiClient>()),
+    )
+    ..registerLazySingleton<AvailabilityRepository>(
+      () => AvailabilityRepositoryImpl(getIt<AvailabilityRemoteDataSource>()),
+    )
+    ..registerLazySingleton<ManageAvailability>(
+      () => ManageAvailability(getIt<AvailabilityRepository>()),
+    )
     ..registerLazySingleton<Dio>(
       () => Dio(
         BaseOptions(

@@ -40,6 +40,7 @@ public class InstructorService {
     private final DrivingCategoryRepository drivingCategoryRepository;
     private final AuthorizationService authorizationService;
     private final PasswordEncoder passwordEncoder;
+    private final AvailabilityService availability;
 
     public InstructorService(
         InstructorRepository instructorRepository,
@@ -49,7 +50,7 @@ public class InstructorService {
         RoleRepository roleRepository,
         DrivingCategoryRepository drivingCategoryRepository,
         AuthorizationService authorizationService,
-        PasswordEncoder passwordEncoder
+        PasswordEncoder passwordEncoder, AvailabilityService availability
     ) {
         this.instructorRepository = instructorRepository;
         this.schoolRepository = schoolRepository;
@@ -59,6 +60,7 @@ public class InstructorService {
         this.drivingCategoryRepository = drivingCategoryRepository;
         this.authorizationService = authorizationService;
         this.passwordEncoder = passwordEncoder;
+        this.availability = availability;
     }
 
     @Transactional(readOnly = true)
@@ -133,7 +135,7 @@ public class InstructorService {
     ) {
         requirePermission(schoolId, authenticatedUser);
 
-        InstructorProfile instructor = instructorRepository.findByIdAndSchoolMembershipSchoolId(instructorId, schoolId)
+        InstructorProfile instructor = instructorRepository.findForUpdate(instructorId, schoolId)
             .orElseThrow(() -> new InstructorNotFoundException("Instructor does not exist."));
         instructor.getSchoolMembership().getUser().updateProfile(
             request.firstName(),
@@ -171,7 +173,9 @@ public class InstructorService {
     private void applyInstructorDetails(InstructorProfile instructor, InstructorRequest request) {
         Set<DrivingCategory> categories = getActiveCategories(request.categoryCodes());
         instructor.update(request.licenseNumber(), activeOrDefault(request), categories);
-        instructor.replaceAvailabilityRules(toAvailabilityRules(instructor, request.availabilityRules()));
+        var rules = toAvailabilityRules(instructor, request.availabilityRules());
+        if (instructor.getId() != null) availability.validateExistingRules(instructor, rules);
+        instructor.replaceAvailabilityRules(rules);
     }
 
     private boolean activeOrDefault(InstructorRequest request) {

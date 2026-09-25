@@ -2,6 +2,7 @@ import '../../domain/entities/lesson.dart';
 
 class LessonModel {
   const LessonModel({
+    this.proposedStartAt,
     required this.id,
     required this.schoolId,
     required this.candidateId,
@@ -25,6 +26,7 @@ class LessonModel {
 
   factory LessonModel.fromJson(Map<String, dynamic> json) {
     return LessonModel(
+      proposedStartAt: _parseOptionalDate(json['proposedStartAt']),
       id: json['id'] as String,
       schoolId: json['schoolId'] as String,
       candidateId: json['candidateId'] as String,
@@ -59,6 +61,7 @@ class LessonModel {
   final String? branchName;
   final String lessonType;
   final String status;
+  final DateTime? proposedStartAt;
   final DateTime startAt;
   final DateTime endAt;
   final DateTime? confirmedAt;
@@ -69,6 +72,7 @@ class LessonModel {
 
   Lesson toEntity() {
     return Lesson(
+      proposedStartAt: proposedStartAt,
       id: id,
       schoolId: schoolId,
       candidateId: candidateId,

@@ -23,6 +23,7 @@ public record LessonResponse(
     String notes,
     Instant completedAt,
     String completionNote,
-    String createdByRole
+    String createdByRole,
+    Instant proposedStartAt
 ) {
 }

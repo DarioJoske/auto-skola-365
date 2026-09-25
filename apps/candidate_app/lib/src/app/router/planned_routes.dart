@@ -9,18 +9,6 @@ const plannedScreens = [
         'Pregled koraka osposobljavanja je u pripremi. Aktualni broj sati prikazan je na početnoj stranici.',
   ),
   (
-    path: '/lessons/request',
-    title: 'Zatraži vožnju',
-    description:
-        'Samostalan ekran zahtjeva je u pripremi. Zahtjev već možete poslati kroz početnu stranicu ili termine.',
-  ),
-  (
-    path: '/lessons/request-sent',
-    title: 'Zahtjev je poslan',
-    description:
-        'Ovo je predviđeno mjesto za potvrdu zahtjeva. Otvaranje ove stranice ne šalje zahtjev.',
-  ),
-  (
     path: '/lessons/:lessonId',
     title: 'Detalj termina',
     description:

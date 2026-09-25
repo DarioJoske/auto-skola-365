@@ -329,6 +329,124 @@ class TenancyRegressionTest {
             .andExpect(status().isOk()).andExpect(jsonPath("$.completedDrivingHours").value(1));
     }
 
+    @Test
+    void proposalRequiresCandidateConsentAndNeverAddsHours() throws Exception {
+        var proposed = future();
+        postJson(BASE + "/lessons/" + LESSON + "/propose", instructorToken, proposal(proposed))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REQUESTED"))
+            .andExpect(jsonPath("$.proposedStartAt").value(proposed.toString()));
+        postJson(BASE + "/lessons/" + LESSON + "/confirm", instructorToken, "{}").andExpect(status().isConflict());
+        read(BASE + "/candidate-portal", candidateToken).andExpect(status().isOk())
+            .andExpect(jsonPath("$.completedDrivingHours").value(0))
+            .andExpect(jsonPath("$.lessons[0].proposedStartAt").value(proposed.toString()))
+            .andExpect(jsonPath("$.lessons[0].notes").doesNotExist());
+        postJson(BASE + "/lessons/candidate/" + LESSON + "/proposal-response", candidateToken, response(proposed, true))
+            .andExpect(status().isNoContent());
+        read(BASE + "/candidate-portal", candidateToken).andExpect(jsonPath("$.lessons[0].status").value("CONFIRMED"))
+            .andExpect(jsonPath("$.lessons[0].startAt").value(proposed.toString()))
+            .andExpect(jsonPath("$.completedDrivingHours").value(0));
+        postJson(BASE + "/lessons/candidate/" + LESSON + "/proposal-response", candidateToken, response(proposed, true))
+            .andExpect(status().isConflict());
+        postJson(BASE + "/lessons/" + LESSON + "/reject", instructorToken, "{}").andExpect(status().isConflict());
+    }
+
+    @Test
+    void proposalRejectAndStaleResponsePreserveDecisionBoundaries() throws Exception {
+        var start = future();
+        postJson(BASE + "/lessons/" + LESSON + "/propose", instructorToken, proposal(start)).andExpect(status().isOk());
+        postJson(BASE + "/lessons/" + LESSON + "/propose", instructorToken, proposal(start.plusSeconds(7200))).andExpect(status().isOk());
+        String route = BASE + "/lessons/candidate/" + LESSON + "/proposal-response";
+        postJson(route, candidateToken, response(start, true)).andExpect(status().isConflict());
+        postJson(route, candidateToken, response(start.plusSeconds(7200), false)).andExpect(status().isNoContent());
+        postJson(BASE + "/lessons/" + LESSON + "/confirm", instructorToken, "{}").andExpect(status().isConflict());
+        assertThat(jdbc.queryForObject("SELECT status FROM lessons WHERE id=?", String.class, id(LESSON))).isEqualTo("CANCELLED");
+    }
+
+    @Test
+    void allRequestDecisionsRecheckAssignmentMembershipAndOwnership() throws Exception {
+        var start = future();
+        for (String action : List.of("confirm", "reject", "propose")) {
+            postJson(BASE + "/lessons/" + LESSON + "/" + action, otherInstructorToken, proposal(start)).andExpect(status().isForbidden());
+            postJson("/api/schools/" + OTHER_SCHOOL + "/lessons/" + LESSON + "/" + action, instructorToken, proposal(start)).andExpect(status().isForbidden());
+        }
+        postJson(BASE + "/lessons/" + LESSON + "/propose", instructorToken, proposal(start)).andExpect(status().isOk());
+        String responseRoute = BASE + "/lessons/candidate/" + OTHER_LESSON + "/proposal-response";
+        postJson(responseRoute, candidateToken, response(start, true)).andExpect(status().isForbidden());
+        jdbc.update("UPDATE candidates SET assigned_instructor_profile_id=? WHERE id=?", id(OTHER_INSTRUCTOR), id(CANDIDATE));
+        for (String action : List.of("confirm", "reject", "propose")) {
+            postJson(BASE + "/lessons/" + LESSON + "/" + action, instructorToken, proposal(start)).andExpect(status().isConflict());
+        }
+        postJson(BASE + "/lessons/candidate/" + LESSON + "/proposal-response", candidateToken, response(start, true)).andExpect(status().isConflict());
+        jdbc.update("UPDATE candidates SET assigned_instructor_profile_id=? WHERE id=?", id(INSTRUCTOR), id(CANDIDATE));
+        jdbc.update("UPDATE school_memberships SET status='INACTIVE' WHERE id=?", id("30000000-0000-0000-0000-000000000001"));
+        postJson(BASE + "/lessons/" + LESSON + "/reject", instructorToken, "{}").andExpect(status().isForbidden());
+        postJson(BASE + "/lessons/candidate/" + LESSON + "/proposal-response", candidateToken, response(start, true)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void competingConfirmAndRejectHaveOneWinner() throws Exception {
+        assertRace(() -> postJson(BASE + "/lessons/" + LESSON + "/confirm", instructorToken, "{}"),
+            () -> postJson(BASE + "/lessons/" + LESSON + "/reject", instructorToken, "{}"), 200);
+    }
+
+    @Test
+    void workingHoursBreaksAndAbsenceAreEnforcedWithoutDeletingLessons() throws Exception {
+        var start = future();
+        String availability = BASE + "/instructors/me/availability";
+        read(availability, instructorToken).andExpect(status().isOk()).andExpect(jsonPath("$.timeZone").value("Europe/Zagreb"));
+        putJson(availability, instructorToken, block(start, "BREAK")).andExpect(status().isOk());
+        postJson(BASE + "/lessons/candidate/reservations", candidateToken, proposal(start)).andExpect(status().isConflict());
+        postJson(BASE + "/lessons/instructor/reservations", instructorToken, reservation(CANDIDATE, start)).andExpect(status().isConflict());
+        postJson(BASE + "/lessons", adminToken, lessonBody(CANDIDATE, start)).andExpect(status().isConflict());
+        putJson(availability, instructorToken, "{\"rules\":[],\"blocks\":[]}").andExpect(status().isOk());
+        postJson(BASE + "/lessons/instructor/reservations", instructorToken, reservation(CANDIDATE, start)).andExpect(status().isCreated());
+        putJson(availability, instructorToken, block(start, "ABSENCE")).andExpect(status().isConflict());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM lessons WHERE status='CONFIRMED'", Long.class)).isEqualTo(1);
+        int otherDay = start.atZone(java.time.ZoneId.of("Europe/Zagreb")).getDayOfWeek().getValue() % 7 + 1;
+        String rules = "{\"rules\":[{\"dayOfWeek\":" + otherDay + ",\"startTime\":\"08:00\",\"endTime\":\"16:00\"}],\"blocks\":[]}";
+        putJson(availability, instructorToken, rules).andExpect(status().isConflict());
+        jdbc.update("UPDATE lessons SET status='CANCELLED'");
+        putJson(availability, instructorToken, rules).andExpect(status().isOk());
+        postJson(BASE + "/lessons/candidate/reservations", candidateToken, proposal(start)).andExpect(status().isConflict());
+        putJson(BASE + "/instructors/" + INSTRUCTOR + "/availability", candidateToken, rules).andExpect(status().isForbidden());
+        putJson(BASE + "/instructors/" + INSTRUCTOR + "/availability", adminToken, "{\"rules\":[],\"blocks\":[]}").andExpect(status().isOk());
+    }
+
+    @Test
+    void proposalAcceptanceRacesAbsenceAndRechecksNewConflicts() throws Exception {
+        var start = future();
+        postJson(BASE + "/lessons/" + LESSON + "/propose", instructorToken, proposal(start)).andExpect(status().isOk());
+        var pool = Executors.newFixedThreadPool(2);
+        var gate = new CountDownLatch(1);
+        try {
+            var accept = pool.submit(() -> { gate.await(); return postJson(BASE + "/lessons/candidate/" + LESSON + "/proposal-response", candidateToken, response(start, true)).andReturn().getResponse().getStatus(); });
+            var absence = pool.submit(() -> { gate.await(); return putJson(BASE + "/instructors/me/availability", instructorToken, block(start, "ABSENCE")).andReturn().getResponse().getStatus(); });
+            gate.countDown();
+            var results = List.of(accept.get(15, TimeUnit.SECONDS), absence.get(15, TimeUnit.SECONDS));
+            assertThat(results).contains(409);
+            assertThat(results.stream().filter(code -> code == 200 || code == 204).count()).isEqualTo(1);
+        } finally { gate.countDown(); pool.shutdownNow(); }
+    }
+
+    @Test
+    void acceptingTwoProposalsForTheSameSlotOnlyConfirmsOne() throws Exception {
+        var start = future();
+        jdbc.update("UPDATE candidates SET assigned_instructor_profile_id=? WHERE id=?", id(INSTRUCTOR), id(OTHER_CANDIDATE));
+        jdbc.update("UPDATE lessons SET instructor_profile_id=?, proposed_start_at=? WHERE id IN (?,?)", id(INSTRUCTOR), java.sql.Timestamp.from(start), id(LESSON), id(OTHER_LESSON));
+        // Give the second candidate an independent candidate membership for this race.
+        jdbc.update("UPDATE candidates SET user_id=? WHERE id=?", id("20000000-0000-0000-0000-000000000002"), id(OTHER_CANDIDATE));
+        jdbc.update("UPDATE school_memberships SET role_id=? WHERE id=?", id("00000000-0000-0000-0000-000000000003"), id("30000000-0000-0000-0000-000000000002"));
+        assertRace(() -> postJson(BASE + "/lessons/candidate/" + LESSON + "/proposal-response", candidateToken, response(start, true)),
+            () -> postJson(BASE + "/lessons/candidate/" + OTHER_LESSON + "/proposal-response", otherInstructorToken, response(start, true)), 204);
+    }
+
+    private String proposal(Instant start) { return "{\"startAt\":\"" + start + "\"}"; }
+    private String response(Instant start, boolean accept) { return "{\"startAt\":\"" + start + "\",\"accept\":" + accept + "}"; }
+    private String block(Instant start, String kind) { return "{\"rules\":[],\"blocks\":[{\"startAt\":\"" + start + "\",\"endAt\":\"" + start.plusSeconds(3600) + "\",\"kind\":\"" + kind + "\"}]}"; }
+    private ResultActions putJson(String path, String token, String body) throws Exception {
+        return mvc.perform(put(path).header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
     private void assertRace(Callable<ResultActions> a, Callable<ResultActions> b, int success) throws Exception {
         var pool = Executors.newFixedThreadPool(2);
         var ready = new CountDownLatch(2);

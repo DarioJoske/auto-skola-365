@@ -1,3 +1,4 @@
+import '../../domain/usecases/respond_proposal.dart';
 import 'package:auto_skola_design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,6 +24,7 @@ final class PortalShell extends StatelessWidget {
       return BlocProvider(
         key: ValueKey('${auth.user!.id}:${auth.candidateMembership!.schoolId}'),
         create: (_) => PortalCubit(
+          respondProposal: getIt<RespondProposal>(),
           loadPortal: getIt<LoadPortal>(),
           requestLesson: getIt<RequestLesson>(),
           schoolId: auth.candidateMembership!.schoolId,
@@ -31,7 +33,7 @@ final class PortalShell extends StatelessWidget {
         child: BlocListener<PortalCubit, PortalState>(
           listenWhen: (previous, current) =>
               previous.errorId != current.errorId ||
-              previous.savedId != current.savedId,
+              previous.responseId != current.responseId,
           listener: (context, state) {
             final failure = state.actionFailure ?? state.loadFailure;
             if (failure?.statusCode == 401) {
@@ -39,6 +41,11 @@ final class PortalShell extends StatelessWidget {
               context.read<AuthCubit>().logout();
             } else if (state.actionFailure != null) {
               showAppSnackBar(context, state.actionFailure!.message);
+            } else if (failure == null &&
+                state.responseId > 0 &&
+                !state.loading &&
+                !state.saving) {
+              showAppSnackBar(context, 'Odgovor je spremljen.');
             }
           },
           child: PortalNavigation(path: path, child: child),

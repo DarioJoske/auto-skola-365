@@ -105,9 +105,8 @@ final class LessonDetailView extends StatelessWidget {
                   FilledButton(
                     onPressed: state.actionInProgress
                         ? null
-                        : () =>
-                              context.read<LessonDetailCubit>().confirmLesson(),
-                    child: const Text('Potvrdi termin'),
+                        : () => _open(context, '/lessons/${lesson.id}/request'),
+                    child: const Text('Obradi zahtjev'),
                   ),
                 if (['REQUESTED', 'CONFIRMED'].contains(lesson.status))
                   TextButton(

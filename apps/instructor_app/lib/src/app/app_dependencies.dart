@@ -1,3 +1,10 @@
+import '../features/availability/data/datasources/availability_remote_data_source.dart';
+import '../features/availability/data/repositories/availability_repository_impl.dart';
+import '../features/availability/domain/repositories/availability_repository.dart';
+import '../features/availability/domain/usecases/manage_availability.dart';
+import '../features/schedule/domain/usecases/decide_request.dart';
+import '../features/schedule/domain/repositories/request_decisions_repository.dart';
+import '../features/schedule/data/repositories/request_decisions_repository_impl.dart';
 import '../features/candidates/domain/usecases/get_instructor_candidate.dart';
 import '../features/schedule/domain/usecases/load_candidate_lessons.dart';
 import '../features/schedule/domain/usecases/reserve_instructor_lesson.dart';
@@ -39,6 +46,23 @@ void configureDependencies() {
   }
 
   getIt
+    ..registerLazySingleton<AvailabilityRemoteDataSource>(
+      () => AvailabilityRemoteDataSource(getIt<ApiClient>()),
+    )
+    ..registerLazySingleton<AvailabilityRepository>(
+      () => AvailabilityRepositoryImpl(getIt<AvailabilityRemoteDataSource>()),
+    )
+    ..registerLazySingleton<ManageAvailability>(
+      () => ManageAvailability(getIt<AvailabilityRepository>()),
+    )
+    ..registerLazySingleton<RequestDecisionsRepository>(
+      () => RequestDecisionsRepositoryImpl(
+        getIt<InstructorLessonsRemoteDataSource>(),
+      ),
+    )
+    ..registerLazySingleton<DecideRequest>(
+      () => DecideRequest(getIt<RequestDecisionsRepository>()),
+    )
     ..registerLazySingleton<GetInstructorCandidate>(
       () => GetInstructorCandidate(getIt<InstructorCandidatesRepository>()),
     )

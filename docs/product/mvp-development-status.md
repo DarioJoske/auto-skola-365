@@ -103,3 +103,10 @@ Ova dopuna zamjenjuje raniju stavku o nedovršenom početnom admin pregledu.
   trenutačni API i sučelja više ne nude unos tih procjena.
 - Prije pilota treba urediti produkcijsko kreiranje škola, obnovu pristupa,
   sigurnosne kopije i probu vraćanja, nadzor te postupanje s osobnim podacima.
+
+## Dopuna 2026-09-25 — task #10
+
+Implementirani su [zahtjevi i dostupnost](../development/request-availability.md):
+I07/I08 i C04/C05, kandidatovo prihvaćanje ili odbijanje novog vremena, admin
+uređivanje dostupnosti te backend provjere pravila i konkurentnih odluka.
+Pauze i odsutnosti ne uklanjaju postojeće termine; konflikt se izričito odbija.

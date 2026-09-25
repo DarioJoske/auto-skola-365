@@ -1,5 +1,6 @@
 class InstructorLesson {
   const InstructorLesson({
+    this.proposedStartAt,
     this.completedAt,
     this.completionNote,
     required this.id,
@@ -22,6 +23,7 @@ class InstructorLesson {
     required this.createdByRole,
   });
 
+  final DateTime? proposedStartAt;
   final DateTime? completedAt;
   final String? completionNote;
   final String id;

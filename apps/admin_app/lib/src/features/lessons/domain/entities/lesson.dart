@@ -1,5 +1,6 @@
 class Lesson {
   const Lesson({
+    this.proposedStartAt,
     required this.id,
     required this.schoolId,
     required this.candidateId,
@@ -33,6 +34,7 @@ class Lesson {
   final String? branchName;
   final String lessonType;
   final String status;
+  final DateTime? proposedStartAt;
   final DateTime startAt;
   final DateTime endAt;
   final DateTime? confirmedAt;

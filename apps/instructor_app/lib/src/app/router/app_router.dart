@@ -1,3 +1,5 @@
+import '../../features/schedule/presentation/pages/request_page.dart';
+import '../../features/availability/presentation/pages/availability_page.dart';
 import '../../features/schedule/presentation/pages/daily_schedule_page.dart';
 import '../../features/schedule/presentation/pages/complete_lesson_page.dart';
 import '../../features/schedule/presentation/pages/lesson_completed_page.dart';
@@ -51,6 +53,15 @@ GoRouter createAppRouter({required AuthCubit authCubit}) {
             _noTransitionPage(state, InstructorShellPage(child: child)),
         routes: [
           ...plannedRoutes(),
+          GoRoute(
+            path: '/lessons/:lessonId/request',
+            builder: (_, state) =>
+                RequestPage(lessonId: state.pathParameters['lessonId']!),
+          ),
+          GoRoute(
+            path: '/availability',
+            builder: (_, state) => const AvailabilityPage(),
+          ),
           GoRoute(
             path: '/home',
             pageBuilder: (context, state) =>

@@ -1,3 +1,4 @@
+import '../features/portal/domain/usecases/respond_proposal.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import '../config/app_config.dart';
@@ -20,6 +21,9 @@ final getIt = GetIt.instance;
 void configureDependencies() {
   if (getIt.isRegistered<AuthCubit>()) return;
   getIt
+    ..registerLazySingleton<RespondProposal>(
+      () => RespondProposal(getIt<PortalRepository>()),
+    )
     ..registerLazySingleton<Dio>(
       () => Dio(
         BaseOptions(

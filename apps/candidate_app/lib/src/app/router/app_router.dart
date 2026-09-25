@@ -1,3 +1,5 @@
+import '../../features/portal/presentation/pages/request_lesson_page.dart';
+import '../../features/portal/presentation/pages/request_sent_page.dart';
 import 'planned_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -29,6 +31,14 @@ GoRouter createAppRouter({
       builder: (_, state, child) =>
           PortalShell(path: state.uri.path, child: child),
       routes: [
+        GoRoute(
+          path: '/lessons/request',
+          builder: (_, state) => const RequestLessonPage(),
+        ),
+        GoRoute(
+          path: '/lessons/request-sent',
+          builder: (_, state) => const RequestSentPage(),
+        ),
         ...plannedRoutes(),
         GoRoute(
           path: '/',

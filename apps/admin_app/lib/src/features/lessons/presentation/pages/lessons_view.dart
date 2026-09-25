@@ -369,6 +369,12 @@ final class _LessonDetailsDialog extends StatelessWidget {
                   value:
                       '${formatDate(lesson.startAt)} ${formatTime(lesson.startAt)}-${formatTime(lesson.endAt)}',
                 ),
+                if (lesson.proposedStartAt case final proposed?)
+                  _DetailRow(
+                    label: 'Čeka odgovor kandidata',
+                    value:
+                        '${formatDate(proposed)} ${formatTime(proposed)} · 60 minuta',
+                  ),
                 if (lesson.notes != null && lesson.notes!.isNotEmpty)
                   _DetailRow(label: 'Napomena', value: lesson.notes!),
                 if (state.errorMessage != null) ...[
@@ -390,7 +396,9 @@ final class _LessonDetailsDialog extends StatelessWidget {
                   : () => Navigator.of(context).pop(),
               child: const Text('Zatvori'),
             ),
-            if (lesson.status != 'COMPLETED' && lesson.status != 'NO_SHOW')
+            if (lesson.status != 'COMPLETED' &&
+                lesson.status != 'NO_SHOW' &&
+                lesson.proposedStartAt == null)
               TextButton.icon(
                 onPressed: state.isSubmitting
                     ? null
@@ -399,7 +407,7 @@ final class _LessonDetailsDialog extends StatelessWidget {
                 icon: const Icon(Icons.edit),
                 label: const Text('Uredi'),
               ),
-            if (lesson.status == 'REQUESTED')
+            if (lesson.status == 'REQUESTED' && lesson.proposedStartAt == null)
               FilledButton.icon(
                 onPressed: state.isSubmitting
                     ? null

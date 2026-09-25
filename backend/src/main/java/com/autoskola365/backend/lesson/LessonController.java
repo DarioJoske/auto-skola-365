@@ -149,4 +149,19 @@ public class LessonController {
     ) {
         return lessonService.cancel(schoolId, lessonId, authenticatedUser);
     }
+    @PostMapping("/{lessonId}/propose")
+    public LessonResponse propose(@PathVariable UUID schoolId, @PathVariable UUID lessonId,
+        @Valid @RequestBody ProposalRequest request, @AuthenticationPrincipal AuthenticatedUser user) {
+        return lessonService.propose(schoolId, lessonId, request, user);
+    }
+    @PostMapping("/{lessonId}/reject")
+    public LessonResponse reject(@PathVariable UUID schoolId, @PathVariable UUID lessonId,
+        @AuthenticationPrincipal AuthenticatedUser user) { return lessonService.reject(schoolId, lessonId, user); }
+    @PostMapping("/candidate/{lessonId}/proposal-response")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void respond(@PathVariable UUID schoolId, @PathVariable UUID lessonId,
+        @Valid @RequestBody ProposalResponse request, @AuthenticationPrincipal AuthenticatedUser user) {
+        lessonService.respond(schoolId, lessonId, request, user);
+    }
+
 }

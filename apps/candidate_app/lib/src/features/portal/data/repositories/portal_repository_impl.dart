@@ -9,6 +9,28 @@ final class PortalRepositoryImpl implements PortalRepository {
   const PortalRepositoryImpl(this._remote);
   final PortalRemoteDataSource _remote;
   @override
+  FutureEither<void> respondProposal({
+    required String schoolId,
+    required String accessToken,
+    required String lessonId,
+    required DateTime startAt,
+    required bool accept,
+  }) async {
+    try {
+      await _remote.respondProposal(
+        schoolId: schoolId,
+        accessToken: accessToken,
+        lessonId: lessonId,
+        startAt: startAt,
+        accept: accept,
+      );
+      return const Right(null);
+    } catch (error) {
+      return Left(Failure.fromException(error));
+    }
+  }
+
+  @override
   FutureEither<CandidatePortal> load({
     required String schoolId,
     required String accessToken,

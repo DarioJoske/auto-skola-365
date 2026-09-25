@@ -62,6 +62,9 @@ public class Lesson extends AuditableEntity {
     @Column(name = "confirmed_at")
     private Instant confirmedAt;
 
+    @Column(name = "proposed_start_at")
+    private Instant proposedStartAt;
+
     @Column(name = "cancelled_at")
     private Instant cancelledAt;
 
@@ -116,6 +119,10 @@ public class Lesson extends AuditableEntity {
         String notes
     ) {
         requireMutable();
+        if (proposedStartAt != null && !"CANCELLED".equals(status)) {
+            throw new LessonConflictException("Prijedlog čeka odgovor kandidata.");
+        }
+        proposedStartAt = null;
         this.candidate = candidate;
         this.instructor = instructor;
         this.drivingCategory = drivingCategory;
@@ -135,6 +142,7 @@ public class Lesson extends AuditableEntity {
 
     public void confirm() {
         requireMutable();
+        if (proposedStartAt != null) throw new LessonConflictException("Prijedlog čeka odgovor kandidata.");
         status = LessonStatus.CONFIRMED.value();
         confirmedAt = Instant.now();
         cancelledAt = null;
@@ -142,8 +150,34 @@ public class Lesson extends AuditableEntity {
 
     public void cancel() {
         requireMutable();
+        proposedStartAt = null;
         status = LessonStatus.CANCELLED.value();
         cancelledAt = Instant.now();
+    }
+
+    public Instant getProposedStartAt() {
+        return proposedStartAt;
+    }
+    public void propose(Instant start) {
+        requireRequested();
+        proposedStartAt = start;
+    }
+    public void respondToProposal(Instant expectedStart, boolean accept) {
+        requireRequested();
+        if (proposedStartAt == null || !proposedStartAt.equals(expectedStart)) {
+            throw new LessonConflictException("Prijedlog je promijenjen. Osvježite termine.");
+        }
+        if (accept) {
+            startAt = proposedStartAt;
+            endAt = startAt.plusSeconds(3600);
+            proposedStartAt = null;
+            confirm();
+        } else {
+            cancel();
+        }
+    }
+    public void requireRequested() {
+        if (!"REQUESTED".equals(status)) throw new LessonConflictException("Zahtjev je već obrađen. Osvježite termine.");
     }
 
     public void complete(String note, Instant now) {

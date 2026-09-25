@@ -2,6 +2,7 @@
 DELETE FROM lesson_progress;
 DELETE FROM lessons;
 DELETE FROM candidates;
+DELETE FROM instructor_availability_blocks;
 DELETE FROM instructor_availability_rules;
 DELETE FROM instructors_categories;
 DELETE FROM instructor_profiles;

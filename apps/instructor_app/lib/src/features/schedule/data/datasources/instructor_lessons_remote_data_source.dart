@@ -119,6 +119,20 @@ class InstructorLessonsRemoteDataSource {
     );
   }
 
+  Future<InstructorLessonModel> decide({
+    required String schoolId,
+    required String accessToken,
+    required String lessonId,
+    required String decision,
+    DateTime? startAt,
+  }) => _runLessonAction(
+    schoolId: schoolId,
+    accessToken: accessToken,
+    lessonId: lessonId,
+    action: decision,
+    body: {if (startAt != null) 'startAt': startAt.toUtc().toIso8601String()},
+  );
+
   Future<InstructorLessonModel> _runLessonAction({
     required String schoolId,
     required String accessToken,

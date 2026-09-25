@@ -33,7 +33,9 @@ final class HomePage extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final next = NextLessonCard(
-                lesson: upcoming.firstOrNull,
+                lesson: upcoming
+                    .where((l) => l.status == 'CONFIRMED')
+                    .firstOrNull,
                 canRequest: data.canRequestLesson,
               );
               final progress = DrivingHoursCard(data: data);

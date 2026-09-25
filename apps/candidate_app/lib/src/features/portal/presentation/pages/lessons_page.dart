@@ -1,8 +1,8 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:auto_skola_design_system/design_system.dart';
 import '../widgets/portal_content.dart';
 import '../widgets/lesson_card.dart';
-import '../widgets/request_lesson_dialog.dart';
 
 final class LessonsPage extends StatefulWidget {
   const LessonsPage({super.key});
@@ -33,7 +33,7 @@ class _LessonsPageState extends State<LessonsPage> {
               ),
               FilledButton.icon(
                 onPressed: data.canRequestLesson
-                    ? () => showLessonRequest(context)
+                    ? () => context.push('/lessons/request')
                     : null,
                 icon: const Icon(Icons.add),
                 label: const Text('Zatraži termin'),

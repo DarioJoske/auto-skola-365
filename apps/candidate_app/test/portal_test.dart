@@ -1,3 +1,4 @@
+import 'package:auto_skola_365_candidate_app/src/features/portal/domain/usecases/respond_proposal.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -85,6 +86,7 @@ class PortalFake extends Fake implements PortalRepository {
 PortalCubit cubitFor(PortalFake repository) => PortalCubit(
   loadPortal: LoadPortal(repository),
   requestLesson: RequestLesson(repository),
+  respondProposal: RespondProposal(repository),
   schoolId: 'school',
   accessToken: 'token',
 );
